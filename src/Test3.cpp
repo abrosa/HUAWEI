@@ -48,7 +48,10 @@ void push_xrect(int n, int m, int p, auto &xrect, auto &xrects, auto &solutions)
     if (ll || lr || ul || ur) {
         for (auto it = solutions.begin(); it != solutions.end(); ++it) {
             auto solution = *it;
-            if (solution.xrect[0] == xrect[0]) {
+            if (solution.xrect[0] == xrect[0] &&
+                solution.xrect[1] == xrect[1] &&
+                solution.xrect[2] == xrect[2] &&
+                solution.xrect[3] == xrect[3]) {
                 ll_f = true;
                 ll_c = solution.candidate;
             } else if (solution.xrect[0] == xrect[1]) {
@@ -161,18 +164,88 @@ void push_xrect(int n, int m, int p, auto &xrect, auto &xrects, auto &solutions)
     } else {
         cout << " shouldn't be here " << endl;
     }
-
-    // if ll exists, add new candidates to it
-    for (auto solution : solutions) {
-        if (solution.xrect[0] == xrect[0]) {
-            solution.candidate.insert(new_sol.candidate.begin(), new_sol.candidate.end());
+        if (ll_f) {
+            for (int c : ll_c)
+                if (is_valid(n, m, p, c + curr_cand))
+                    new_sol.candidate.insert(c + curr_cand);
         }
-    }
 
     // if ll doesn't exist, push new solution
     if (!ll_f) {
         solutions.push_back(new_sol);
     }
+
+    // if ll exists, add new candidates to it
+    for (auto &solution : solutions) {
+        if (solution.xrect[0] == xrect[0] &&
+            solution.xrect[1] == xrect[1] &&
+            solution.xrect[2] == xrect[2] &&
+            solution.xrect[3] == xrect[3] ) {
+            solution.candidate.insert(new_sol.candidate.begin(), new_sol.candidate.end());
+        }
+    }
+
+    // merge similar solutions
+    for (auto &solution1 : solutions) {
+        for (auto &solution2 : solutions) {
+            if (solution1.xrect[0] == solution2.xrect[0] &&
+               (solution1.xrect[1] != solution2.xrect[1] ||
+                solution1.xrect[2] != solution2.xrect[2] ||
+                solution1.xrect[3] != solution2.xrect[3] )) {
+                solution1.candidate.insert(solution2.candidate.begin(), solution2.candidate.end());
+                solution2.candidate.clear();
+            }
+        }
+    }
+
+    set <int> good_squares;
+    set <int> good_cand;
+    vector <array <int, 2>> unpacked;
+    int curr_square;
+    int curr_counter;
+    int x0, y0;
+    // remove bad candidates from solutions
+    for (auto &solution : solutions) {
+//        cout << solution.candidate.size() << ".";
+        unpacked.clear();
+        for (auto x : solution.candidate) {
+             unpacked.push_back({x%1024, x/1024});
+        }
+        good_squares.clear();
+        for (auto x : unpacked) {
+            good_squares.insert(x[0]);
+        }
+        good_cand.clear();
+        for (auto x : good_squares) {
+            curr_counter = 100500;
+            for (auto y : unpacked) {
+                if (x == y[0]) {
+                    curr_counter = min(curr_counter, y[1]);
+                }
+            }
+            x0 = solution.xrect[0] % 32;
+            y0 = solution.xrect[0] / 32;
+            if (x <= (n - x0) * (m - y0) && curr_counter <= (n - x0) * (m - y0)) {
+                good_cand.insert({x + 1024 * curr_counter});
+            }
+        }
+        solution.candidate = good_cand;
+//        cout << good_cand.size() << "; ";
+    }
+/*
+// debug print
+    for (auto solution : solutions) {
+        cout << endl << solution.xrect[0]%32 << "." << solution.xrect[0]/32 << " ";
+        cout << solution.xrect[1]%32 << "." << solution.xrect[1]/32 << " ";
+        cout << solution.xrect[2]%32 << "." << solution.xrect[2]/32 << " ";
+        cout << solution.xrect[3]%32 << "." << solution.xrect[3]/32 << " ";
+        for (auto x : solution.candidate) {
+             cout << x%1024 << "|" << x/1024 << " ";
+        }
+    }
+    cout << endl;
+// debug print
+*/
 }
 
 int build_map(int n, int m, int p, auto &rects) {
