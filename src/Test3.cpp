@@ -3,44 +3,72 @@
 #include <array>
 #include <set>
 
-// these limits will be used to mapping
-// the pair of coordinates x,y to one int
-// the pair of square and counter to one int
-
-#define MAX_P 100
-#define MAX_X 32
-#define MAX_Y 32
-#define MAX_XY 1024
-
 using namespace std;
 
-class Solution {
+class Vertex {
     public:
-        array <int, 2> xy;
-        vector <array <int, 2>> sc;
+        int x0;
+        int y0;
 };
 
-bool is_valid(int n, int m, int p, int candidate) {
-    return ((candidate % MAX_XY) <= n * m) && ((candidate / MAX_XY) <= p);
-}
+bool operator==(const Vertex& v1, const Vertex& v2) {
+    return v1.x0 == v2.x0 && v1.y0 == v2.y0;
+};
+
+bool operator!=(const Vertex& v1, const Vertex& v2) {
+    return v1.x0 != v2.x0 || v1.y0 != v2.y0;
+};
+
+class Score {
+    public:
+        int s;
+        int c;
+};
+
+Score operator+(const Score& sc1, const Score& sc2) {
+    return Score({sc1.s + sc2.s, sc1.c + sc2.c});
+};
+
+class Solution: public Vertex {
+    public:
+        Vertex xy;
+        vector <Score> sc;
+};
+
+class Xrectangle {
+    public:
+        Vertex ll;
+        Vertex lr;
+        Vertex ul;
+        Vertex ur;
+        int s;
+};
+
+class Rectangle {
+    public:
+        int x1;
+        int y1;
+        int x2;
+        int y2;
+};
 
 void push_xrect(int n, int m, int p, auto &xrect, auto &same, auto &xrects, auto &solutions) {
 
     // data from children c for candidate V for Vendetta
-    vector <array <int, 2>> ll_c, lr_c, ul_c, ur_c;
+    vector <Score> ll_c, lr_c, ul_c, ur_c;
     bool ll_f = false, lr_f = false, ul_f = false, ur_f = false; 
 
     for (auto old_sol : solutions) {
-        if        (old_sol.xy[0] == xrect[0] % 32 && old_sol.xy[1] == xrect[0] / 32) {
+        if        (old_sol.xy == xrect.ll) {
             ll_f = true;
             ll_c = old_sol.sc;
-        } else if (old_sol.xy[0] == xrect[1] % 32 && old_sol.xy[1] == xrect[1] / 32) {
+        } else if (old_sol.xy == xrect.lr) {
             lr_f = true;
             lr_c = old_sol.sc;
-        } else if (old_sol.xy[0] == xrect[2] % 32 && old_sol.xy[1] == xrect[2] / 32) {
+        } else if (old_sol.xy == xrect.ul) {
             ul_f = true;
             ul_c = old_sol.sc;
-        } else if (old_sol.xy[0] == xrect[3] % 32 && old_sol.xy[1] == xrect[3] / 32) {
+        } else if (old_sol.xy == xrect.ur) {
             ur_f = true;
             ur_c = old_sol.sc;
         }
@@ -48,22 +76,23 @@ void push_xrect(int n, int m, int p, auto &xrect, auto &same, auto &xrects, auto
 
     Solution new_sol;
 
-    new_sol.xy = {xrect[0] % 32, xrect[0] / 32};
-    new_sol.sc.push_back({xrect[4], 1});
+    new_sol.xy = xrect.ll;
+    Score curr_rect = {xrect.s, 1};
+    new_sol.sc.push_back(curr_rect);
 
-    for (auto same_rect : same) {
-        new_sol.sc.push_back({same_rect[4], 1});
-    }
+    //for (auto same_rect : same) {
+    //    new_sol.sc.push_back({same_rect.s, 1});
+    //}
 
-    if (lr_f) for (auto i : lr_c) new_sol.sc.push_back({i[0] + xrect[4], i[1] + 1});
-    if (ul_f) for (auto j : ul_c) new_sol.sc.push_back({j[0] + xrect[4], j[1] + 1});
-    if (ur_f) for (auto k : ur_c) new_sol.sc.push_back({k[0] + xrect[4], k[1] + 1});
+    if (lr_f) for (auto i : lr_c) new_sol.sc.push_back(i + curr_rect);
+    if (ul_f) for (auto j : ul_c) new_sol.sc.push_back(j + curr_rect);
+    if (ur_f) for (auto k : ur_c) new_sol.sc.push_back(k + curr_rect);
 
-    if (lr_f && ul_f) for (auto i : lr_c) for (auto j : ul_c) new_sol.sc.push_back({i[0] + j[0] + xrect[4], i[1] + j[1] + 1});
-    if (ul_f && ur_f) for (auto j : ul_c) for (auto k : ur_c) new_sol.sc.push_back({j[0] + k[0] + xrect[4], j[1] + k[1] + 1});
-    if (ur_f && lr_f) for (auto k : ur_c) for (auto i : lr_c) new_sol.sc.push_back({k[0] + i[0] + xrect[4], k[1] + i[1] + 1});
+    if (lr_f && ul_f) for (auto i : lr_c) for (auto j : ul_c) new_sol.sc.push_back(i + j + curr_rect);
+    if (ul_f && ur_f) for (auto j : ul_c) for (auto k : ur_c) new_sol.sc.push_back(j + k + curr_rect);
+    if (ur_f && lr_f) for (auto k : ur_c) for (auto i : lr_c) new_sol.sc.push_back(k + i + curr_rect);
 
-    if (lr_f && ul_f && ur_f) for (auto i : lr_c) for (auto j : ul_c) for (auto k : ur_c) new_sol.sc.push_back({i[0] + j[0] + k[0] + xrect[4], i[1] + j[1] + k[1] + 1});
+    if (lr_f && ul_f && ur_f) for (auto i : lr_c) for (auto j : ul_c) for (auto k : ur_c) new_sol.sc.push_back(i + j + k + curr_rect);
 
     if (!ll_f) {
         solutions.push_back(new_sol);
@@ -71,7 +100,7 @@ void push_xrect(int n, int m, int p, auto &xrect, auto &same, auto &xrects, auto
 
     // if ll exists, add new candidates to it
     for (auto &solution : solutions) {
-        if (solution.xy[0] == xrect[0] % 32 && solution.xy[1] == xrect[0] / 32) {
+        if (solution.xy == xrect.ll) {
             solution.sc.insert(solution.sc.end(), new_sol.sc.begin(), new_sol.sc.end());
         }
     }
@@ -87,31 +116,31 @@ void push_xrect(int n, int m, int p, auto &xrect, auto &same, auto &xrects, auto
     }
 */
     set <int> good_squares;
-    vector <array <int, 2>> good_cand;
-    vector <array <int, 2>> unpacked;
+    vector <Score> good_cand;
+    vector <Score> unpacked;
     int curr_square;
     int curr_counter;
     int x0, y0;
     // remove bad candidates from solutions
     for (auto &solution : solutions) {
         unpacked.clear();
-        for (auto x : solution.sc) {
-             unpacked.push_back({x[0], x[1]});
+        for (Score x : solution.sc) {
+             unpacked.push_back(x);
         }
         good_squares.clear();
-        for (auto x : unpacked) {
-            good_squares.insert(x[0]);
+        for (Score x : unpacked) {
+            good_squares.insert(x.s);
         }
         good_cand.clear();
-        for (auto x : good_squares) {
+        for (int x : good_squares) {
             curr_counter = 100500;
-            for (auto y : unpacked) {
-                if (x == y[0]) {
-                    curr_counter = min(curr_counter, y[1]);
+            for (Score y : unpacked) {
+                if (x == y.s) {
+                    curr_counter = min(curr_counter, y.c);
                 }
             }
-            x0 = solution.xy[0];
-            y0 = solution.xy[1];
+            x0 = solution.xy.x0;
+            y0 = solution.xy.y0;
             if (x <= (n - x0) * (m - y0) && curr_counter <= (n - x0) * (m - y0)) {
                 good_cand.push_back({x, curr_counter});
             }
@@ -144,45 +173,43 @@ int build_map(int n, int m, int p, auto &rects) {
     upper_right = x2 + y2 * 32
     square      = (x2 - x1) * (y2 - y1)
     */
-    vector <array <int, 5>> xrects;
+    vector <Xrectangle> xrects;
     int x1, y1, x2, y2;
-    int lower_left, lower_right, upper_left, upper_right, square;
     for (auto rect : rects) {
         x1 = rect[0]; y1 = rect[1]; x2 = rect[2]; y2 = rect[3];
-        lower_left = x1 + y1 * MAX_X; lower_right = x2 + y1 * MAX_X;
-        upper_left = x1 + y2 * MAX_X; upper_right = x2 + y2 * MAX_X;
-        square = (x2 - x1) * (y2 - y1);
-        xrects.push_back({lower_left, lower_right, upper_left, upper_right, square});
+        xrects.push_back({{x1, y1}, {x2, y1}, {x1, y2}, {x2, y2}, (x2 - x1) * (y2 - y1)});
     }
 
     vector <Solution> solutions;
 
     // set for collecting base vertices
-    set <int> xbases;
+    vector <Vertex> xbases;
 
     while (xrects.size() != 0) {
 
         // refresh set
         xbases.clear();
-        for (auto xrect : xrects) {
-            xbases.insert(xrect[0]);
+        for (Xrectangle xrect : xrects) {
+            xbases.push_back(xrect.ll);
         }
-
+        bool ll, lr, ul, ur; 
         // not-processed xrects with the same base vertex
-        vector <array <int, 5>> same;
+        vector <Xrectangle> same;
         // will try to move xrects without children from "xrects" to "solutions"
         for (auto it = xrects.begin(); it != xrects.end(); ++it) {
             auto xrect = *it;
             for (auto it2 = xrects.begin(); it2 != xrects.end(); ++it2) {
                 auto xrect2 = *it2;
-                if (xrect[0] == xrect2[0] && (xrect[1] != xrect2[1] || xrect[2] != xrect2[2] || xrect[3] != xrect2[3])) {
+                if (xrect.ll == xrect2.ll && (xrect.lr != xrect2.lr || xrect.ul != xrect2.ul || xrect.ur != xrect2.ur)) {
                     same.push_back(xrect2);
                 }
             }
-            bool ll = xbases.contains(xrect[0]);
-            bool lr = xbases.contains(xrect[1]);
-            bool ul = xbases.contains(xrect[2]);
-            bool ur = xbases.contains(xrect[3]);
+            for (auto xbase : xbases) {
+                ll = xbase == xrect.ll;
+                lr = xbase == xrect.lr;
+                ul = xbase == xrect.ul;
+                ur = xbase == xrect.ur;
+            }
             if (ll && !lr && !ul && !ur) {
                 push_xrect(n, m, p, xrect, same, xrects, solutions);
                 xrects.erase(it);
@@ -192,20 +219,20 @@ int build_map(int n, int m, int p, auto &rects) {
     }
 
     // calculate best solution
-    int result = MAX_P;
+    int result = 100500;
     int map_square = 0;
     int counter = 0;
+    Vertex root = {0, 0};
     for (auto solution : solutions) {
-        for (auto candidate : solution.sc) {
-            map_square = candidate[0];
-            counter = candidate[1];
-
-            if (solution.xy[0] == 0 && solution.xy[1] == 0 && map_square == n * m) {
+        for (Score candidate : solution.sc) {
+            map_square = candidate.s;
+            counter = candidate.c;
+            if (solution.xy == root && map_square == n * m) {
                 result = min(counter, result);
             }
         }
     }
-    return result == MAX_P ? -1 : result;
+    return result == 100500 ? -1 : result;
 }
 
 int main() {
