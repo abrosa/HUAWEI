@@ -38,6 +38,17 @@ bool operator!=(const Vertex & v1, const Vertex & v2) {
     return v1.x != v2.x || v1.y != v2.y;
 };
 
+result_type add_results(result_type results1, result_type results2) {
+    // will add content
+    result_type results;
+    for (auto & result1 : results1) {
+        for (auto & result2 : results2) {
+            results.push_back({result1[0] + result2[0], result1[1] + result2[1]});
+        }
+    }
+    return results;
+}
+
 result_type merge_results(int & n, int & m, result_type results1, result_type results2, vector <Rectangle> & rects) {
     // will merge it at first
     result_type results;
@@ -93,79 +104,39 @@ result_type walkthrough(int & n, int & m, int & i, vector <Rectangle> & rects) {
     }
 
     // recursion magic
-    result_type tmp;
-
     int square = (rects[i].x2 - rects[i].x1) * (rects[i].y2 - rects[i].y1);
     result_type current_rect;
     current_rect = {{square, 1}};
 
-    //         --------------------    --------------------    --------------------
-    if        (lr_index.size() == 0 && ul_index.size() == 0 && ur_index.size() == 0) {
+    if (lr_index.size() == 0 && ul_index.size() == 0 && ur_index.size() == 0) {
         return current_rect;
-    //         XXXXXXXXXXXXXXXXXXXX    --------------------    --------------------
     } else if (lr_index.size() != 0 && ul_index.size() == 0 && ur_index.size() == 0) {
-        result_type lr_tmp;
-        for (auto & lr_i : lr_index) {
-            lr_tmp = walkthrough(n, m, lr_i, rects);
-            lr_tmp = merge_results(n, m, lr_tmp, current_rect, rects);
-        }
-        return lr_tmp;
-    //         --------------------    XXXXXXXXXXXXXXXXXXXX    --------------------
+        result_type lr_tmp; for (auto & lr_i : lr_index) lr_tmp = walkthrough(n, m, lr_i, rects);
+        return add_results(current_rect, lr_tmp);
     } else if (lr_index.size() == 0 && ul_index.size() != 0 && ur_index.size() == 0) {
-        result_type ul_tmp;
-        for (auto & ul_i : ul_index) {
-            ul_tmp = walkthrough(n, m, ul_i, rects);
-            ul_tmp = merge_results(n, m, ul_tmp, current_rect, rects);
-        }
-        return ul_tmp;
-    //         --------------------    --------------------    XXXXXXXXXXXXXXXXXXXX
+        result_type ul_tmp; for (auto & ul_i : ul_index) ul_tmp = walkthrough(n, m, ul_i, rects);
+        return add_results(current_rect, ul_tmp);
     } else if (lr_index.size() == 0 && ul_index.size() == 0 && ur_index.size() != 0) {
-        result_type ur_tmp;
-        for (auto & ur_in : ur_index) {
-            ur_tmp = walkthrough(n, m, ur_in, rects);
-            ur_tmp = merge_results(n, m, ur_tmp, current_rect, rects);
-        }
-        return ur_tmp;
-    //         --------------------    XXXXXXXXXXXXXXXXXXXX    XXXXXXXXXXXXXXXXXXXX
+        result_type ur_tmp; for (auto & ur_i : ur_index) ur_tmp = walkthrough(n, m, ur_i, rects);
+        return add_results(current_rect, ur_tmp);
     } else if (lr_index.size() == 0 && ul_index.size() != 0 && ur_index.size() != 0) {
-        result_type ul_tmp;
-        for (auto & ul_in : ul_index) {
-            ul_tmp = walkthrough(n, m, ul_in, rects);
-            ul_tmp = merge_results(n, m, ul_tmp, current_rect, rects);
-        }
-        result_type ur_tmp;
-        for (auto & ur_in : ur_index) {
-            ur_tmp = walkthrough(n, m, ur_in, rects);
-            ur_tmp = merge_results(n, m, ur_tmp, current_rect, rects);
-        }
-        return merge_results(n, m, ul_tmp, ur_tmp, rects);
-    //         XXXXXXXXXXXXXXXXXXXX    --------------------    XXXXXXXXXXXXXXXXXXXX
+        result_type ul_tmp; for (auto & ul_in : ul_index) ul_tmp = walkthrough(n, m, ul_in, rects);
+        ul_tmp = add_results(current_rect, ul_tmp);
+        result_type ur_tmp; for (auto & ur_in : ur_index) ur_tmp = walkthrough(n, m, ur_in, rects);
+        ur_tmp = add_results(current_rect, ur_tmp);
+        return add_results(ul_tmp, ur_tmp);
     } else if (lr_index.size() != 0 && ul_index.size() == 0 && ur_index.size() != 0) {
-        result_type lr_tmp;
-        for (auto & lr_in : lr_index) {
-            lr_tmp = walkthrough(n, m, lr_in, rects);
-            lr_tmp = merge_results(n, m, lr_tmp, current_rect, rects);
-        }
-        result_type ur_tmp;
-        for (auto & ur_in : ur_index) {
-            ur_tmp = walkthrough(n, m, ur_in, rects);
-            ur_tmp = merge_results(n, m, ur_tmp, current_rect, rects);
-        }
-        return merge_results(n, m, lr_tmp, ur_tmp, rects);
-    //         XXXXXXXXXXXXXXXXXXXX    XXXXXXXXXXXXXXXXXXXX    --------------------
+        result_type lr_tmp; for (auto & lr_in : lr_index) lr_tmp = walkthrough(n, m, lr_in, rects);
+        lr_tmp = add_results(current_rect, lr_tmp);
+        result_type ur_tmp; for (auto & ur_in : ur_index) ur_tmp = walkthrough(n, m, ur_in, rects);
+        ur_tmp = add_results(current_rect, ur_tmp);
+        return add_results(lr_tmp, ur_tmp);
     } else if (lr_index.size() != 0 && ul_index.size() != 0 && ur_index.size() == 0) {
-        result_type lr_tmp;
-        for (auto & lr_in : lr_index) {
-            lr_tmp = walkthrough(n, m, lr_in, rects);
-            lr_tmp = merge_results(n, m, lr_tmp, current_rect, rects);
-        }
-        result_type ul_tmp;
-        for (auto & ul_in : ul_index) {
-            ul_tmp = walkthrough(n, m, ul_in, rects);
-            ul_tmp = merge_results(n, m, ul_tmp, current_rect, rects);
-        }
-        return merge_results(n, m, lr_tmp, ul_tmp, rects);
-    //         XXXXXXXXXXXXXXXXXXXX    XXXXXXXXXXXXXXXXXXXX    XXXXXXXXXXXXXXXXXXXX
+        result_type lr_tmp; for (auto & lr_in : lr_index) lr_tmp = walkthrough(n, m, lr_in, rects);
+        lr_tmp = add_results(current_rect, lr_tmp);
+        result_type ul_tmp; for (auto & ul_in : ul_index) ul_tmp = walkthrough(n, m, ul_in, rects);
+        ul_tmp = add_results(current_rect, ul_tmp);
+        return add_results(lr_tmp, ul_tmp);
     } else if (lr_index.size() != 0 && ul_index.size() != 0 && ur_index.size() != 0) {
         result_type lr_tmp; for (auto & lr_ind : lr_index) lr_tmp = walkthrough(n, m, lr_ind, rects);
         result_type ul_tmp; for (auto & ul_ind : ul_index) ul_tmp = walkthrough(n, m, ul_ind, rects);
@@ -187,10 +158,10 @@ result_type walkthrough(int & n, int & m, int & i, vector <Rectangle> & rects) {
         }
         }
         return lr_ul_ur_res;
+    } else {
+        // shouldn't be here
+        return current_rect;
     }
-
-    // tail merge this rectangle to tree
-    return tmp;
 } 
 
 int main() {
