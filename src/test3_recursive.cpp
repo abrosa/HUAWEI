@@ -1,0 +1,202 @@
+#include <iostream>
+#include <vector>
+#include <array>
+#include <set>
+
+#define SIZE_X 4
+#define SIZE_Y 4
+
+using namespace std;
+
+typedef vector <array <int, 2>> result_type;
+
+class Rectangle {
+    public:
+        int x1;
+        int y1;
+        int x2;
+        int y2;
+};
+
+class Score {
+    public:
+        int square;
+        int counter;
+};
+
+class Vertex {
+    public:
+        int x;
+        int y;
+};
+
+bool operator==(const Vertex & v1, const Vertex & v2) {
+    return v1.x == v2.x && v1.y == v2.y;
+};
+
+bool operator!=(const Vertex & v1, const Vertex & v2) {
+    return v1.x != v2.x || v1.y != v2.y;
+};
+
+result_type merge_results(int & n, int & m, result_type results1, result_type results2, vector <Rectangle> & rects) {
+    // will merge it at first
+    result_type results;
+    for (auto & result1 : results1) {
+        for (auto & result2 : results2) {
+            results.push_back({result1[0] + result2[0], result1[1] + result2[1]});
+        }
+    }
+
+    // collect uniq squares
+    set <int> uniq_squares;
+    for (auto & result : results) {
+        uniq_squares.insert(result[0]);
+    }
+
+    // merge good and remove bad results
+    int min_counter;
+    result_type new_results;
+    for (auto & result : results) {
+        auto square = result[0];
+        auto counter = result[1];
+        if (square <= n * m && square >= 1 && counter <= rects.size() && counter >= 1) {
+            min_counter = rects.size();
+            for (auto & curr_square : uniq_squares) {
+                min_counter = min(min_counter, counter);
+            }
+            new_results.push_back({square, min_counter});
+        }
+    }
+    return new_results;
+}
+
+result_type walkthrough(int & n, int & m, int & i, vector <Rectangle> & rects) {
+    // emergency out
+    if (i < 0 || i >= rects.size()) {
+        result_type null_result = {{0, 0}};
+        return null_result;
+    }
+
+    // vertices of current rectangle
+    Vertex ll_rect, lr_rect, ul_rect, ur_rect;
+    lr_rect = {rects[i].x2, rects[i].y1};
+    ul_rect = {rects[i].x1, rects[i].y2};
+    ur_rect = {rects[i].x2, rects[i].y2};
+
+    // lists of child rectangles
+    vector <int> lr_index, ul_index, ur_index;
+    for (int i = 0; i < rects.size(); ++i) {
+        ll_rect = {rects[i].x1, rects[i].y1};
+        if (lr_rect == ll_rect) lr_index.push_back(i);
+        if (ul_rect == ll_rect) ul_index.push_back(i);
+        if (ur_rect == ll_rect) ur_index.push_back(i);
+    }
+
+    // recursion magic
+    result_type tmp;
+
+    int square = (rects[i].x2 - rects[i].x1) * (rects[i].y2 - rects[i].y1);
+    result_type current_rect;
+    current_rect = {{square, 1}};
+
+    //         --------------------    --------------------    --------------------
+    if        (lr_index.size() == 0 && ul_index.size() == 0 && ur_index.size() == 0) {
+        return current_rect;
+    //         XXXXXXXXXXXXXXXXXXXX    --------------------    --------------------
+    } else if (lr_index.size() != 0 && ul_index.size() == 0 && ur_index.size() == 0) {
+        result_type lr_tmp;
+        for (auto & lr_i : lr_index) {
+            lr_tmp = walkthrough(n, m, lr_i, rects);
+            lr_tmp = merge_results(n, m, lr_tmp, current_rect, rects);
+        }
+        return lr_tmp;
+    //         --------------------    XXXXXXXXXXXXXXXXXXXX    --------------------
+    } else if (lr_index.size() == 0 && ul_index.size() != 0 && ur_index.size() == 0) {
+        result_type ul_tmp;
+        for (auto & ul_i : ul_index) {
+            ul_tmp = walkthrough(n, m, ul_i, rects);
+            ul_tmp = merge_results(n, m, ul_tmp, current_rect, rects);
+        }
+        return ul_tmp;
+    //         --------------------    --------------------    XXXXXXXXXXXXXXXXXXXX
+    } else if (lr_index.size() == 0 && ul_index.size() == 0 && ur_index.size() != 0) {
+        result_type ur_tmp;
+        for (auto & ur_in : ur_index) {
+            ur_tmp = walkthrough(n, m, ur_in, rects);
+            ur_tmp = merge_results(n, m, ur_tmp, current_rect, rects);
+        }
+        return ur_tmp;
+    //         --------------------    XXXXXXXXXXXXXXXXXXXX    XXXXXXXXXXXXXXXXXXXX
+    } else if (lr_index.size() == 0 && ul_index.size() != 0 && ur_index.size() != 0) {
+        result_type ur_tmp;
+        for (auto & ur_in : ur_index) {
+            ur_tmp = walkthrough(n, m, ur_in, rects);
+            ur_tmp = merge_results(n, m, ur_tmp, current_rect, rects);
+        }
+        return ur_tmp;
+    //         XXXXXXXXXXXXXXXXXXXX    --------------------    XXXXXXXXXXXXXXXXXXXX
+    } else if (lr_index.size() != 0 && ul_index.size() == 0 && ur_index.size() != 0) {
+        result_type ur_tmp;
+        for (auto & ur_in : ur_index) {
+            ur_tmp = walkthrough(n, m, ur_in, rects);
+            ur_tmp = merge_results(n, m, ur_tmp, current_rect, rects);
+        }
+        return ur_tmp;
+    //         XXXXXXXXXXXXXXXXXXXX    XXXXXXXXXXXXXXXXXXXX    --------------------
+    } else if (lr_index.size() != 0 && ul_index.size() != 0 && ur_index.size() == 0) {
+        result_type ur_tmp;
+        for (auto & ur_in : ur_index) {
+            ur_tmp = walkthrough(n, m, ur_in, rects);
+            ur_tmp = merge_results(n, m, ur_tmp, current_rect, rects);
+        }
+        return ur_tmp;
+    //         XXXXXXXXXXXXXXXXXXXX    XXXXXXXXXXXXXXXXXXXX    XXXXXXXXXXXXXXXXXXXX
+    } else if (lr_index.size() != 0 && ul_index.size() != 0 && ur_index.size() != 0) {
+        result_type ur_tmp;
+        for (auto & ur_in : ur_index) {
+            ur_tmp = walkthrough(n, m, ur_in, rects);
+            ur_tmp = merge_results(n, m, ur_tmp, current_rect, rects);
+        }
+        return ur_tmp;
+    }
+
+    // tail merge this rectangle to tree
+    return tmp;
+} 
+
+int main() {
+    // Begin work
+    cout << "Begin work" << endl;
+
+    // Working data
+    vector <Rectangle> rects;
+    for (int i = 0; i < SIZE_X; ++i) {
+        for (int j = 0; j < SIZE_Y; ++j) {
+            rects.push_back({i, j, i + 1, j + 1});
+        }
+    }
+
+    // constants
+    int n = SIZE_X;
+    int m = SIZE_Y;
+    int p = SIZE_X * SIZE_Y;
+
+    // some magic
+    for (int i = 0; i < rects.size(); ++i) {
+        if (rects[i].x1 == 0 && rects[i].y1 == 0) {
+            // call recurrent function
+            int ind = i;
+            result_type tree_results = walkthrough(n, m, ind, rects);
+
+            // print new result
+            for (auto & result : tree_results) {
+                cout << result[0] << "'" << result[1] << ", ";
+            }
+            cout << "; ";
+        }
+    }
+    cout << endl;
+
+    // Work finished
+    cout << "Work finished" << endl;
+}
