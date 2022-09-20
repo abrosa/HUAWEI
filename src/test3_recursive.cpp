@@ -3,8 +3,8 @@
 #include <array>
 #include <set>
 
-#define SIZE_X 4
-#define SIZE_Y 4
+#define SIZE_X 3
+#define SIZE_Y 3
 
 using namespace std;
 
@@ -128,36 +128,65 @@ result_type walkthrough(int & n, int & m, int & i, vector <Rectangle> & rects) {
         return ur_tmp;
     //         --------------------    XXXXXXXXXXXXXXXXXXXX    XXXXXXXXXXXXXXXXXXXX
     } else if (lr_index.size() == 0 && ul_index.size() != 0 && ur_index.size() != 0) {
+        result_type ul_tmp;
+        for (auto & ul_in : ul_index) {
+            ul_tmp = walkthrough(n, m, ul_in, rects);
+            ul_tmp = merge_results(n, m, ul_tmp, current_rect, rects);
+        }
         result_type ur_tmp;
         for (auto & ur_in : ur_index) {
             ur_tmp = walkthrough(n, m, ur_in, rects);
             ur_tmp = merge_results(n, m, ur_tmp, current_rect, rects);
         }
-        return ur_tmp;
+        return merge_results(n, m, ul_tmp, ur_tmp, rects);
     //         XXXXXXXXXXXXXXXXXXXX    --------------------    XXXXXXXXXXXXXXXXXXXX
     } else if (lr_index.size() != 0 && ul_index.size() == 0 && ur_index.size() != 0) {
+        result_type lr_tmp;
+        for (auto & lr_in : lr_index) {
+            lr_tmp = walkthrough(n, m, lr_in, rects);
+            lr_tmp = merge_results(n, m, lr_tmp, current_rect, rects);
+        }
         result_type ur_tmp;
         for (auto & ur_in : ur_index) {
             ur_tmp = walkthrough(n, m, ur_in, rects);
             ur_tmp = merge_results(n, m, ur_tmp, current_rect, rects);
         }
-        return ur_tmp;
+        return merge_results(n, m, lr_tmp, ur_tmp, rects);
     //         XXXXXXXXXXXXXXXXXXXX    XXXXXXXXXXXXXXXXXXXX    --------------------
     } else if (lr_index.size() != 0 && ul_index.size() != 0 && ur_index.size() == 0) {
-        result_type ur_tmp;
-        for (auto & ur_in : ur_index) {
-            ur_tmp = walkthrough(n, m, ur_in, rects);
-            ur_tmp = merge_results(n, m, ur_tmp, current_rect, rects);
+        result_type lr_tmp;
+        for (auto & lr_in : lr_index) {
+            lr_tmp = walkthrough(n, m, lr_in, rects);
+            lr_tmp = merge_results(n, m, lr_tmp, current_rect, rects);
         }
-        return ur_tmp;
+        result_type ul_tmp;
+        for (auto & ul_in : ul_index) {
+            ul_tmp = walkthrough(n, m, ul_in, rects);
+            ul_tmp = merge_results(n, m, ul_tmp, current_rect, rects);
+        }
+        return merge_results(n, m, lr_tmp, ul_tmp, rects);
     //         XXXXXXXXXXXXXXXXXXXX    XXXXXXXXXXXXXXXXXXXX    XXXXXXXXXXXXXXXXXXXX
     } else if (lr_index.size() != 0 && ul_index.size() != 0 && ur_index.size() != 0) {
-        result_type ur_tmp;
-        for (auto & ur_in : ur_index) {
-            ur_tmp = walkthrough(n, m, ur_in, rects);
-            ur_tmp = merge_results(n, m, ur_tmp, current_rect, rects);
+        result_type lr_tmp; for (auto & lr_ind : lr_index) lr_tmp = walkthrough(n, m, lr_ind, rects);
+        result_type ul_tmp; for (auto & ul_ind : ul_index) ul_tmp = walkthrough(n, m, ul_ind, rects);
+        result_type ur_tmp; for (auto & ur_ind : ur_index) ur_tmp = walkthrough(n, m, ur_ind, rects);
+        // will merge it
+        result_type lr_ul_ur_res;
+        for (auto & result1 : lr_tmp) {
+        for (auto & result2 : ul_tmp) {
+        for (auto & result3 : ur_tmp) {
+        lr_ul_ur_res.push_back({result1[0] + square, result1[1] + 1});
+        lr_ul_ur_res.push_back({result2[0] + square, result2[1] + 1});
+        lr_ul_ur_res.push_back({result3[0] + square, result3[1] + 1});
+        lr_ul_ur_res.push_back({result2[0] + result3[0] + square, result2[1] + result3[1] + 1});
+        lr_ul_ur_res.push_back({result1[0] + result3[0] + square, result1[1] + result3[1] + 1});
+        lr_ul_ur_res.push_back({result1[0] + result2[0] + square, result1[1] + result2[1] + 1});
+        lr_ul_ur_res.push_back({square, 1});
+        lr_ul_ur_res.push_back({result1[0] + result2[0] + result3[0] + square, result1[1] + result2[1] + result3[1] + 1});
         }
-        return ur_tmp;
+        }
+        }
+        return lr_ul_ur_res;
     }
 
     // tail merge this rectangle to tree
@@ -165,9 +194,6 @@ result_type walkthrough(int & n, int & m, int & i, vector <Rectangle> & rects) {
 } 
 
 int main() {
-    // Begin work
-    cout << "Begin work" << endl;
-
     // Working data
     vector <Rectangle> rects;
     for (int i = 0; i < SIZE_X; ++i) {
@@ -182,21 +208,20 @@ int main() {
     int p = SIZE_X * SIZE_Y;
 
     // some magic
+    int min_count = p;
     for (int i = 0; i < rects.size(); ++i) {
         if (rects[i].x1 == 0 && rects[i].y1 == 0) {
             // call recurrent function
             int ind = i;
             result_type tree_results = walkthrough(n, m, ind, rects);
-
-            // print new result
             for (auto & result : tree_results) {
-                cout << result[0] << "'" << result[1] << ", ";
+                int square = result[0];
+                int counter = result[1];
+                if (square == n * m) {
+                    min_count = min(min_count, counter);
+                }
             }
-            cout << "; ";
         }
     }
-    cout << endl;
-
-    // Work finished
-    cout << "Work finished" << endl;
+    cout << min_count << endl;
 }
