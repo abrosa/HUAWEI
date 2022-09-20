@@ -49,15 +49,7 @@ result_type add_results(result_type results1, result_type results2) {
     return results;
 }
 
-result_type merge_results(int & n, int & m, result_type results1, result_type results2, vector <Rectangle> & rects) {
-    // will merge it at first
-    result_type results;
-    for (auto & result1 : results1) {
-        for (auto & result2 : results2) {
-            results.push_back({result1[0] + result2[0], result1[1] + result2[1]});
-        }
-    }
-
+result_type pack_results(result_type results, int & map_size, int & rects_size) {
     // collect uniq squares
     set <int> uniq_squares;
     for (auto & result : results) {
@@ -70,8 +62,8 @@ result_type merge_results(int & n, int & m, result_type results1, result_type re
     for (auto & result : results) {
         auto square = result[0];
         auto counter = result[1];
-        if (square <= n * m && square >= 1 && counter <= rects.size() && counter >= 1) {
-            min_counter = rects.size();
+        if (square <= map_size && square >= 1 && counter <= rects_size && counter >= 1) {
+            min_counter = rects_size;
             for (auto & curr_square : uniq_squares) {
                 min_counter = min(min_counter, counter);
             }
@@ -104,6 +96,8 @@ result_type walkthrough(int & n, int & m, int & i, vector <Rectangle> & rects) {
     }
 
     // recursion magic
+    int map_size = n * m;
+    int rects_size = rects.size();
     int square = (rects[i].x2 - rects[i].x1) * (rects[i].y2 - rects[i].y1);
     result_type current_rect;
     current_rect = {{square, 1}};
@@ -157,7 +151,7 @@ result_type walkthrough(int & n, int & m, int & i, vector <Rectangle> & rects) {
         }
         }
         }
-        return lr_ul_ur_res;
+        return pack_results(lr_ul_ur_res, map_size, rects_size);
     } else {
         // shouldn't be here
         return current_rect;
