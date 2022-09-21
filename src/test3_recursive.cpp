@@ -254,36 +254,32 @@ set <uint32_t> walkthrough(uint32_t data, set <uint32_t> prev, uint32_t rect, ve
 
 int main() {
     // Working data
-//    uint8_t t = 1, n = 3, m = 3, p = 5;
-    uint8_t t = 1, n = 6, m = 6, p = n*m;
+    // TODO: fix processing of rects with the same ll corners
+    //
+    uint8_t t = 1, n = 30, m = 30, p = n * m;
+    p += 225;
     uint32_t data = pack_4(t, n, m, p);
 
-    // Print working data
-    cout << "t=" << int(t) << ", n=" << int(n) << ", m=" << int(m) << ", p=" << int(p) << "." << endl;
+    // Debug print working data
+    //cout << "t=" << int(t) << ", n=" << int(n) << ", m=" << int(m) << ", p=" << int(p) << "." << endl;
 
     // Rects data
     vector <uint32_t> rects;
 
-    for(int i=0;i<n;i+=2)
-    for(int j=0;j<m;j+=2)
-    rects.push_back(pack_4(i,j,i+2,j+2));
-    //rects.push_back(pack_4(0, 0, 1, 1));
-    //rects.push_back(pack_4(0, 1, 1, 2));
-    //rects.push_back(pack_4(1, 0, 2, 1));
-    //rects.push_back(pack_4(1, 1, 2, 2));
-/*
-    rects.push_back(pack_4(0, 0, 2, 2));
-    rects.push_back(pack_4(0, 2, 1, 3));
-    rects.push_back(pack_4(1, 2, 2, 3));
-    rects.push_back(pack_4(2, 2, 3, 3));
-    rects.push_back(pack_4(2, 0, 3, 1));
-    rects.push_back(pack_4(2, 1, 3, 2));
-*/
-    // Print rects data
-    for (auto & rect : rects) {
-        print_rect(rect);
+    // Data filling
+    for(int i = 0; i < n; i += 3) {
+        for(int j = 0; j < m; j += 3) {
+            rects.push_back(pack_4(i, j, i + 3, j + 3));
+            rects.push_back(pack_4(i, j, i + 2, j + 2));
+        }
     }
 
+    // Debug print rects data
+    //for (auto & rect : rects) {
+    //    print_rect(rect);
+    //}
+
+    // set for storing solutions
     set <uint32_t> prev;
 
     // Iterate through rects
@@ -318,10 +314,12 @@ int main() {
                 array <uint16_t, 2> scores = unpack_2(result);
                 uint16_t square = scores[1];
                 uint16_t counter = scores[0];
-                if (square == n*m) min_count = min(min_count, counter);
+                if (square == n * m) {
+                    min_count = min(min_count, counter);
+                }
             }
-            min_count = min_count == p ? -1 : min_count;
-            cout << min_count << endl;
+            int result = min_count == p ? -1 : min_count;
+            cout << result << endl;
         }
     }
 }
