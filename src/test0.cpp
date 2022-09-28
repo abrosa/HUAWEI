@@ -23,21 +23,7 @@ class Rectangle {
         Vertex lr;
         Vertex ur;
 };
-
-class xRectangle {
-    public:
-        uint32_t ll;
-        uint32_t ul;
-        uint32_t lr;
-        uint32_t ur;
-        set <uint32_t> score;
-        bool is_ll = false;
-        bool is_ul = false;
-        bool is_lr = false;
-        bool is_ur = false;
-};
-
-
+/*
 void merge_scores(int & n, int & m, int & p, xRectangle & xrect1, xRectangle & xrect2) {
     // merge score1 to score2
     int x1, y1, x2, y2, square1, square2, counter1, counter2;
@@ -71,13 +57,14 @@ void merge_scores(int & n, int & m, int & p, xRectangle & xrect1, xRectangle & x
 bool is_child(xRectangle & xrect1, xRectangle & xrect2) {
     return xrect2.ll == xrect1.ul || xrect2.ll == xrect1.lr;
 }
-
-int walkthrough(int & n, int & m, int & p, vector <xRectangle> & xrects) {
+*/
+void walkthrough(int & n, int & m, int & p, vector <Rectangle> & xrects) {
     int square;
     int counter;
-    int min_counter;
-    xRectangle result;
+    int min_counter = p + 1;
+    Rectangle result;
     int index = 50;
+/*
     while (index --> 0) {
         for (int i = 0; i < xrects.size(); ++i) {
             for (int j = 0; j < xrects.size(); ++j) {
@@ -112,9 +99,11 @@ int walkthrough(int & n, int & m, int & p, vector <xRectangle> & xrects) {
             }
         }
     }
-    return (min_counter == p + 1) ? -1 : min_counter;
+*/
+    min_counter = (min_counter == p + 1) ? -1 : min_counter;
+    cout << min_counter << endl;
 }
-
+/*
 void init_xrects(int & n, int & m, int & p, vector <vector <int>> & rects, vector <xRectangle> & xrects) {
     uint32_t score;
     for (auto & x : rects) {
@@ -139,19 +128,11 @@ void init_xrects(int & n, int & m, int & p, vector <vector <int>> & rects, vecto
         xrects.push_back(xrect);
     }
 }
-
-int main() {
-/*
-    int n = 2, m = 2, p = 4;
-    vector <vector <int>> rects;
-    rects = { {0, 0, 1, 1},
-              {1, 1, 2, 2},
-              {0, 1, 1, 2},
-              {1, 0, 2, 1} };
 */
+int main() {
     int n = 5, m = 5, p = 45;
-    vector <vector <int>> rects;
-    rects = { {0, 0, 1, 1},
+    vector <vector <int>> input;
+    input = { {0, 0, 1, 1},
               {0, 1, 1, 2},
               {0, 2, 1, 3},
               {0, 3, 1, 4},
@@ -197,7 +178,7 @@ int main() {
               {3, 3, 5, 4},
               {3, 4, 5, 5} };
 
-    vector <xRectangle> xrects;
-    init_xrects(n, m, p, rects, xrects);
-    cout << walkthrough(n, m, p, xrects) << endl;
+    vector <Rectangle> rects;
+    //init_rects(n, m, p, input, rects);
+    walkthrough(n, m, p, rects);
 }
