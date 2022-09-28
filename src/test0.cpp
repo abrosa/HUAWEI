@@ -51,23 +51,35 @@ void unpack_solution(const uint32_t & solution, int & square, int & counter, int
 
 vector <Vertex> init_vertices(int & n, int & m, int & p, vector <vector <int>> & input, vector <Vertex> & vertices) {
     // vertices for children Vertices
-    Vertex vert_ll, vert_ul, vert_lr;
+    Vertex vert_ll, vert_ul, vert_lr, vert_ur;
     // solutions for children Vertices
-    int sol_ul, sol_lr;
+    int sol_ll, sol_ul, sol_lr, sol_ur;
+    int x1, y1, x2, y2;
+    int square;
     // iterate through input rects
-    for (auto & x : input) {
-        int x1 = x[0], y1 = x[1], x2 = x[2], y2 = x[3];
+    for (auto & rect : input) {
+        x1 = rect[0]; y1 = rect[1]; x2 = rect[2]; y2 = rect[3];
+        vert_ll.xy = x1 * 32 + y1;
         vert_ul.xy = x1 * 32 + y2;
         vert_lr.xy = x2 * 32 + y1;
-        sol_ul = pack_solution((x2 - x1) * (y2 - y1), 1, x1, y2);
-        sol_lr = pack_solution((x2 - x1) * (y2 - y1), 1, x2, y1);
+        vert_ur.xy = x2 * 32 + y2;
+        square = (x2 - x1) * (y2 - y1);
+        sol_ll = pack_solution(square, 1, x1, y1);
+        sol_ul = pack_solution(square, 1, x1, y2);
+        sol_lr = pack_solution(square, 1, x2, y1);
+        sol_ur = pack_solution(square, 1, x2, y2);
+        vert_ll.solution.insert(sol_ll);
         vert_ul.solution.insert(sol_ul);
-        vert_ul.solution.insert(sol_lr);
-        vert_lr.solution.insert(sol_ul);
         vert_lr.solution.insert(sol_lr);
-        bool ul_exists = false, lr_exists = false; 
+        vert_ur.solution.insert(sol_ur);
+        bool ll_exists = false, ul_exists = false; 
+        bool lr_exists = false, ur_exists = false; 
         // check if vertices already exist
         for (auto & v : vertices) {
+            if (v.xy == vert_ll.xy) {
+                ll_exists = true;
+                v.solution.insert(sol_ll);
+            }
             if (v.xy == vert_ul.xy) {
                 ul_exists = true;
                 v.solution.insert(sol_ul);
@@ -76,17 +88,38 @@ vector <Vertex> init_vertices(int & n, int & m, int & p, vector <vector <int>> &
                 lr_exists = true;
                 v.solution.insert(sol_lr);
             }
+            if (v.xy == vert_ur.xy) {
+                ur_exists = true;
+                v.solution.insert(sol_ur);
+            }
         }
         // push new vertices
+        if (! ll_exists) {
+            vertices.push_back(vert_ll);
+        }
         if (! ul_exists) {
             vertices.push_back(vert_ul);
         }
         if (! lr_exists) {
             vertices.push_back(vert_lr);
         }
+        if (! ur_exists) {
+            vertices.push_back(vert_ur);
+        }
     }
     // second iteration. now all vertices are exist
     // and already have all base solutions inside
+    for (auto & v : vertices) {
+        int square, counter, x, y;
+        set <uint32_t> tmp;
+        for (auto & sol : v.solution) {
+            unpack_solution(sol, square, counter, x, y);
+            if (v.xy == x * 32 + y) {
+                tmp.insert(sol);
+            }
+        }
+        v.solution = tmp;
+    }
     for (auto & x : input) {
         int x1 = x[0], y1 = x[1], x2 = x[2], y2 = x[3];
         vert_ll.xy = x1 * 32 + y1;
@@ -101,25 +134,43 @@ vector <Vertex> init_vertices(int & n, int & m, int & p, vector <vector <int>> &
                 for (auto & child : vertices) {
                     // search for child vertex
                     if (child.xy == vert_ul.xy) {
-                        //merge_solutions(n, m, p, vertex.solution, child.solution);
+                        merge_solutions(n, m, p, vertex.solution, child.solution);
                         info_moved = true;
                     }
                     if (child.xy == vert_lr.xy) {
-                        //merge_solutions(n, m, p, vertex.solution, child.solution);
+                        merge_solutions(n, m, p, vertex.solution, child.solution);
                         info_moved = true;
                     }
                 }
                 if (info_moved) {
-                    //vertices.erase(it);
-                    //--it;
+                    vertices.erase(it);
+                    --it;
                 }
             }
         }
+    }
+    for (auto & v : vertices) {
+        int square, counter, x, y;
+        set <uint32_t> tmp;
+        for (auto & sol : v.solution) {
+            unpack_solution(sol, square, counter, x, y);
+            if (v.xy == x * 32 + y) {
+                tmp.insert(sol);
+            }
+        }
+        v.solution = tmp;
     }
     return vertices;
 }
 
 int main() {
+    int n = 2, m = 2, p = 4;
+    vector <vector <int>> input;
+    input = { {0, 0, 1, 1},
+              {0, 1, 1, 2},
+              {1, 0, 2, 1},
+              {1, 1, 2, 2} };
+/*
     int n = 5, m = 5, p = 45;
     vector <vector <int>> input;
     input = { {0, 0, 1, 1},
@@ -167,7 +218,7 @@ int main() {
               {3, 2, 5, 3},
               {3, 3, 5, 4},
               {3, 4, 5, 5} };
-
+*/
     vector <Vertex> vertices;
     vertices = init_vertices(n, m, p, input, vertices);
     cout << vertices.size() << endl;
