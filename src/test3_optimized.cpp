@@ -1,7 +1,5 @@
-//#include <algorithm>
-#include <iostream>
+﻿#include <iostream>
 #include <vector>
-//#include <array>
 #include <set>
 
 using namespace std;
@@ -11,6 +9,8 @@ class Solutions {
         // map size
         int n;
         int m;
+        // number of fragments
+        int p;
         // coordinates
         uint8_t x1;
         uint8_t y1;
@@ -18,216 +18,170 @@ class Solutions {
         uint8_t y2;
         // rect with packed coordinates
         uint32_t rect;
-        // rect square and counter = 1?
+        // info about corners
+        uint16_t c_ll;
+        uint16_t c_lr;
+        uint16_t c_ul;
+        uint16_t c_ur;
+        // rect square and counter
         uint16_t square;
         uint16_t counter;
-        // solution with square and counter packed
-        uint32_t sol;
-        // set of all solutions
-        set <uint32_t> sols;
-        // info about children
-        bool has_children;
-        set <uint32_t> children;
-        // info about parents
-        bool has_parents;
-        set <uint32_t> parents;
-        // if this rect started at {0, 0}
-        bool is_root;
-        // if this rect ended at {n, m}
-        bool is_leaf;
+        set <uint32_t> score;
+        // flag for processed rects
+        bool processed = false;
+        bool is_ll = false;
+        bool is_lr = false;
+        bool is_ul = false;
+        bool is_ur = false;
+        // info about neighbours
+        vector <Solutions> n_ll;
+        vector <Solutions> n_lr;
+        vector <Solutions> n_ul;
+        vector <Solutions> n_ur;
 };
 
-void add_sols(int & n, int & m, uint32_t & curr_rect, uint32_t & child_rect, vector <Solutions> & vsols) {
-    // add child solutions to curr
-    // x is current object
-    for (auto & x : vsols) {
-    if (curr_rect == x.rect) {
-        // y is child object
-        for (auto & y : vsols) {
-        if (child_rect == y.rect) {
-            // z is one of child solutions
-            for (auto & z : y.sols) {
-                // insert to current all solutions from children
-                x.sols.insert(x.sol + z);
-            }
-        }
-        }
-    }
-    }
-}
-
-void merge_solutions(int n, int m, int p, int x1, int y1, set <uint32_t> & solutions1, set <uint32_t> & solutions2) {
-    // merge second solutions to the first one
-    // just copy second
-    solutions1.insert(solutions2.begin(), solutions2.end());
-    // iterate through first
-    for (auto & solution1 : solutions1) {
-        // iterate through second
-        for (auto & solution2 : solutions2) {
-            // check if solutions sum will be correct
-            uint32_t both = solution1 + solution2;
-            uint16_t square = both & 65535;
-            uint16_t counter = both >> 16;
-            if (counter > 0 && counter <= p && square > 0 && square <= (n - x1) * (m - y1)) {
-                solutions1.insert(both);
+void merge_solutions(Solutions & curr, Solutions & next) {
+    set <uint32_t> tmp;
+    // merge curr and next
+    tmp = curr.score;
+    tmp.insert(next.score.begin(), next.score.end());
+    // multiply solution matrices
+    for (auto & score1 : curr.score) {
+        uint16_t square1 = score1 & 65535;
+        uint16_t counter1 = score1 >> 16;
+        for (auto & score2 : next.score) {
+            uint16_t square2 = score2 & 65535;
+            uint16_t counter2 = score2 >> 16;
+            if (square1 + square2 <= curr.n * curr.m && counter1 + counter2 <= curr.p) {
+                //cout << "!";
+                tmp.insert(score1 + score2);
             }
         }
     }
+    curr.score = tmp;
+    next.score = tmp;
 }
 
-
-bool is_child(uint32_t curr_rect, uint32_t child_rect) {
-    uint8_t curr_x1 = curr_rect  >> 24;
-    uint8_t curr_y1 = curr_rect  >> 16 & 255;
-    uint8_t curr_x2 = curr_rect  >> 8 & 255;
-    uint8_t curr_y2 = curr_rect  & 255;
-    uint8_t child_x1 = child_rect >> 24;
-    uint8_t child_y1 = child_rect >> 16 & 255;
-    //uint8_t child_x2 = child_rect >> 8 & 255;
-    //uint8_t child_y2 = child_rect & 255;
-    if (((curr_x2 == child_x1 && curr_y1 == child_y1) ||
-         (curr_x1 == child_x1 && curr_y2 == child_y1))) {
-        return true;
-    }
-    return false;
-}
-
-bool is_parent(uint32_t curr_rect, uint32_t parent_rect) {
-    uint8_t curr_x1 = curr_rect >> 24;
-    uint8_t curr_y1 = curr_rect >> 16 & 255;
-    //uint8_t curr_x2 = curr_rect >> 8 & 255;
-    //uint8_t curr_y2 = curr_rect & 255;
-    uint8_t parent_x1 = parent_rect >> 24;
-    uint8_t parent_y1 = parent_rect >> 16 & 255;
-    uint8_t parent_x2 = parent_rect >> 8 & 255;
-    uint8_t parent_y2 = parent_rect & 255;
-    if (((curr_x1 == parent_x2 && curr_y1 == parent_y1) ||
-         (curr_x1 == parent_x1 && curr_y1 == parent_y2))) {
-        return true;
-    }
-    return false;
-}
-
-void collect_info(int n, int m, vector <uint32_t> & rects, vector <Solutions> & vsols) {
+vector <Solutions> collect_info(int n, int m, vector <uint32_t> & rects) {
     // collect info for Solutions class
-    vsols.clear();
+    vector <Solutions> vsols;
     for (auto & x : rects) {
         Solutions curr;
         curr.n = n;
         curr.m = m;
-        curr.has_children = false;
-        curr.has_parents = false;
-        curr.children.clear();
-        curr.parents.clear();
+        curr.p = rects.size();
         curr.rect = x;
         curr.x1 = x >> 24;
         curr.y1 = x >> 16 & 255;
         curr.x2 = x >> 8 & 255;
         curr.y2 = x & 255;
-        curr.is_root = ((x >> 16) == 0);
-        curr.is_leaf = curr.x2 == n && curr.y2 == m;
+        curr.c_ll = (curr.x1 << 8) + curr.y1;
+        curr.c_lr = (curr.x2 << 8) + curr.y1;
+        curr.c_ul = (curr.x1 << 8) + curr.y2;
+        curr.c_ur = (curr.x2 << 8) + curr.y2;
+        curr.is_ll = curr.x1 == 0 && curr.y1 == 0;
+        curr.is_lr = curr.x2 == n && curr.y1 == 0;
+        curr.is_ul = curr.x1 == 0 && curr.y2 == m;
+        curr.is_ur = curr.x2 == n && curr.y2 == m;
         curr.square = (curr.x2 - curr.x1) * (curr.y2 - curr.y1);
         curr.counter = 1;
-        curr.sol = curr.square + (curr.counter << 16);
-        curr.sols = {curr.sol};
-        for (auto & y : rects) {
-            if (is_child(x, y)) {
-                curr.has_children = true;
-                curr.children.insert(y);
-            }
-            if (is_parent(x, y)) {
-                curr.has_parents = true;
-                curr.parents.insert(y);
-            }
-        }
+        uint32_t score = curr.square + (1<<16);
+        curr.score.insert({score});
         vsols.push_back(curr);
     }
+    return vsols;
 }
 
-void update_info(int n, int m, vector <uint32_t> & rects, vector <Solutions> & vsols) {
-    // collect info for Solutions class
-    for (auto & x : vsols) {
-        x.has_children = false;
-        x.has_parents = false;
-        x.children.clear();
-        x.parents.clear();
-        for (auto & y : rects) {
-            if (is_child(x.rect, y)) {
-                x.has_children = true;
-                x.children.insert(y);
-            }
-            if (is_parent(x.rect, y)) {
-                x.has_parents = true;
-                x.parents.insert(y);
-            }
+void update_info(vector <Solutions> & vsols) {
+    // update info about neighbours
+    for (auto & curr : vsols) {
+        for (auto & next : vsols) {
+            if (curr.c_ul == next.c_ur) curr.n_ll.push_back(next);
+            if (curr.c_lr == next.c_ur) curr.n_ll.push_back(next);
+            if (curr.c_ur == next.c_ul) curr.n_lr.push_back(next);
+            if (curr.c_ll == next.c_ul) curr.n_lr.push_back(next);
+            if (curr.c_ur == next.c_lr) curr.n_ul.push_back(next);
+            if (curr.c_ll == next.c_lr) curr.n_ul.push_back(next);
+            if (curr.c_ul == next.c_ll) curr.n_ur.push_back(next);
+            if (curr.c_lr == next.c_ll) curr.n_ur.push_back(next);
         }
     }
 }
 
-set <uint32_t> get_sols(uint32_t & rect, vector <Solutions> & vsols) {
-    set <uint32_t> sols;
-    for (auto & vsol : vsols) {
-        if (vsol.rect == rect) {
-            sols = vsol.sols;
-        }
-    }
-    return sols;
-}
-
-void set_sols(uint32_t & rect, set <uint32_t> & sols, vector <Solutions> & vsols) {
-    for (auto & vsol : vsols) {
-        if (vsol.rect == rect) {
-            vsol.sols = sols;
-        }
-    }
-}
-
-void print_rect(uint32_t x) {
-    cout << int(x>>24) << "'" << int(x>>16&255) << "'" << int(x>>8&255) << "'" << int(x&255);
-}
-
-void remove_rect(uint32_t rect, vector <uint32_t> & rects) {
-    for (auto it = rects.begin(); it != rects.end(); ++it) {
-        auto curr = * it;
-        if (curr == rect) {
-            rects.erase(it);
-            --it;
-        }
-    }
-}
-
-int walkthrough(int & n, int & m, vector <uint32_t> & rects) {
-    int p = rects.size();
-    vector <Solutions> vsols;
-    collect_info(n, m, rects, vsols);
-    set <uint32_t> old_sols;
-    bool changed = true;
-    while (changed) {
-        changed = false;
-        for (auto & x : vsols) {
-            if (! x.has_children) {
-                if (x.has_parents || x.is_root) {
-                    for (auto & y : vsols) {
-                        old_sols = y.sols;
-                        if (x.parents.contains(y.rect)) {
-                            merge_solutions(n, m, p, y.x1, y.y1, y.sols, x.sols);
-                        }
-                        if (y.sols != old_sols) changed = true;
+void visualize(vector <Solutions> & vsols) {
+    string tmp;
+    //system("ping 127.0.0.1 -n 1 > nul");
+    uint32_t rect;
+    for (int y = vsols[0].m - 1; y >= 0; --y) {
+        for (int x = 0; x < vsols[0].n; ++x) {
+            rect = x * 256 * 65537 + y * 65537 + 257;
+            for (auto & curr : vsols) {
+                if (curr.rect == rect) {
+                    if (curr.processed) {
+                        tmp += "X";
+                    } else {
+                        tmp += "-";
                     }
-                    if (! x.is_root) {
-                        remove_rect(x.rect, rects);
-                    }
+                    tmp += " ";
                 }
             }
         }
-        update_info(n, m, rects, vsols);
-    } 
+        tmp += "\n";
+    }
+    tmp += "\n";
+    system("cls");
+    cout << tmp;
+}
 
+int walkthrough(int & n, int & m, vector <uint32_t> & rects) {
+    // collect info from the rects
+    vector <Solutions> vsols = collect_info(n, m, rects);
+    update_info(vsols);
+    //visualize(vsols);
+    // main loop
+    int counter = 10;
+    int processed;
+    do {
+        processed = 0;
+        for (auto curr = vsols.begin(); curr != vsols.end(); ++curr) {
+            for (auto next = (*curr).n_ll.begin(); next != (*curr).n_ll.end(); ++next) {
+                merge_solutions(*curr, *next); ++processed;
+            }
+            for (auto next = (*curr).n_lr.begin(); next != (*curr).n_lr.end(); ++next) {
+                merge_solutions(*curr, *next); ++processed;
+            }
+            for (auto next = (*curr).n_ul.begin(); next != (*curr).n_ul.end(); ++next) {
+                merge_solutions(*curr, *next); ++processed;
+            }
+            for (auto next = (*curr).n_ur.begin(); next != (*curr).n_ur.end(); ++next) {
+                merge_solutions(*curr, *next); ++processed;
+            }
+            //visualize(vsols);
+            //cout << vsols.size() << endl;
+            //for (auto & vsol : vsols) {
+            //    for (auto & score : vsols[0].score) {
+            //        auto square = score & 65535;
+            //        auto cou    = score >> 16;
+            //        cout << square << "'" << cou << " ";
+            //    }
+            //    cout << ";";
+            //}
+            //cout << endl;
+
+            if (vsols.size() > 1) {
+                vsols.erase(curr);
+                --curr;
+            }
+        }
+    } while (counter --> 0);
+    //} while (processed != 0);
+    //cout << vsols.size() << endl;
     // Iterate through solutions to find the best
+    int p = rects.size();
     int min_count = p + 1;
     for (auto & solution : vsols) {
-        if (! solution.is_root) continue;
-        for (auto & curr_solution : solution.sols) {
+        if (solution.processed) continue;
+        for (auto & curr_solution : solution.score) {
             int square = curr_solution & 65535;
             int counter = curr_solution >> 16;
             if (square == n * m) {
@@ -245,14 +199,81 @@ void pack_rect(int x1, int y1, int x2, int y2, vector <uint32_t> & rects) {
 
 int main() {
     // Map size
-    int n = 10, m = 10;
+    int n = 5, m = 5;
     // Fill rects
     vector <uint32_t> rects;
+/*
     for (int i = 0; i < n; i += 1){
         for (int j = 0; j < m; j += 1){
             pack_rect(i, j, i + 1, j + 1, rects);
         }
     }
+*/
+/*
+    for (int i = 0; i < n; i += 3){
+        for (int j = 0; j < m; j += 3){
+            pack_rect(i, j, i + 3, j + 3, rects);
+        }
+    }
+*/
+pack_rect(0,0,1,1,rects);
+pack_rect(0,1,1,2,rects);
+pack_rect(0,2,1,3,rects);
+pack_rect(0,3,1,4,rects);
+pack_rect(0,4,1,5,rects);
+pack_rect(1,0,2,1,rects);
+pack_rect(1,1,2,2,rects);
+pack_rect(1,2,2,3,rects);
+pack_rect(1,3,2,4,rects);
+pack_rect(1,4,2,5,rects);
+pack_rect(2,0,3,1,rects);
+pack_rect(2,1,3,2,rects);
+pack_rect(2,2,3,3,rects);
+pack_rect(2,3,3,4,rects);
+pack_rect(2,4,3,5,rects);
+pack_rect(3,0,4,1,rects);
+pack_rect(3,1,4,2,rects);
+pack_rect(3,2,4,3,rects);
+pack_rect(3,3,4,4,rects);
+pack_rect(3,4,4,5,rects);
+pack_rect(4,0,5,1,rects);
+pack_rect(4,1,5,2,rects);
+pack_rect(4,2,5,3,rects);
+pack_rect(4,3,5,4,rects);
+pack_rect(4,4,5,5,rects);
+
+pack_rect(0,0,2,1,rects);
+pack_rect(0,1,2,2,rects);
+pack_rect(0,2,2,3,rects);
+pack_rect(0,3,2,4,rects);
+pack_rect(0,4,2,5,rects);
+pack_rect(1,0,3,1,rects);
+pack_rect(1,1,3,2,rects);
+pack_rect(1,2,3,3,rects);
+pack_rect(1,3,3,4,rects);
+pack_rect(1,4,3,5,rects);
+pack_rect(2,0,4,1,rects);
+pack_rect(2,1,4,2,rects);
+pack_rect(2,2,4,3,rects);
+pack_rect(2,3,4,4,rects);
+pack_rect(2,4,4,5,rects);
+pack_rect(3,0,5,1,rects);
+pack_rect(3,1,5,2,rects);
+pack_rect(3,2,5,3,rects);
+pack_rect(3,3,5,4,rects);
+pack_rect(3,4,5,5,rects);
     // Print result
     cout << walkthrough(n, m, rects) << endl;
+    system("pause");
+    return 0;
 }
+
+
+/*
+ ||
+                    ((*next1).lr == (*curr).ll || (*next1).lr == (*curr).ur) ||
+                    ((*next1).ul == (*curr).ll || (*next1).ul == (*curr).ur) ||
+                    ((*next1).ur == (*curr).lr || (*next1).ur == (*curr).ul)
+
+
+*/
