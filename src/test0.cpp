@@ -8,7 +8,6 @@ class Vertex {
     public:
         int xy;
         set <int> solution;
-        vector <Vertex> children;
 };
 
 void merge_solutions(int & n, int & m, int & p, set <int> & solution1, set <int> & solution2) {
@@ -26,62 +25,9 @@ void merge_solutions(int & n, int & m, int & p, set <int> & solution1, set <int>
     }
 }
 
-/*
-
-bool is_child(xRectangle & xrect1, xRectangle & xrect2) {
-    return xrect2.ll == xrect1.ul || xrect2.ll == xrect1.lr;
-}
-*/
-void walkthrough(int & n, int & m, int & p, vector <Vertex> & vertices) {
-    int square;
-    int counter;
-    int min_counter = p + 1;
-//    Rectangle result;
-    int index = 50;
-/*
-    while (index --> 0) {
-        for (int i = 0; i < xrects.size(); ++i) {
-            for (int j = 0; j < xrects.size(); ++j) {
-                if (xrects[i].is_ll) {
-                    merge_scores(n, m, p, xrects[i], xrects[i]);
-                }
-                if (xrects[j].is_ur) {
-                    merge_scores(n, m, p, xrects[j], xrects[j]);
-                }
-                if (is_child(xrects[i], xrects[j])) {
-                    merge_scores(n, m, p, xrects[i], xrects[j]);
-                }
-            }
-            merge_scores(n, m, p, xrects[i], result);
-        }
-    }
-    for (auto & x : xrects) {
-        for (auto & y : x.score) {
-            cout << int(y >> 27) << "'" << int(y >> 22 & 31) << "'" << int(y >> 12 & 1023) << "'" << int(y >> 5 & 127) << " ";
-        }
-        cout << endl;
-    }
-    min_counter = p + 1;
-    for (auto & result : xrects) {
-        for (auto & score : result.score) {
-            square = score >> 12 & 1023;
-            counter = score >> 5 & 127;
-            if (square == n * m) {
-                cout << counter << endl;
-                min_counter = min(min_counter, counter);
-                break;
-            }
-        }
-    }
-*/
-    min_counter = (min_counter == p + 1) ? -1 : min_counter;
-    cout << min_counter << endl;
-}
-
-// recursive?
 vector <Vertex> init_vertices(int & n, int & m, int & p, vector <vector <int>> & input, vector <Vertex> & vertices) {
     // vertices for children Vertices
-    Vertex vert_ul, vert_lr;
+    Vertex vert_ll, vert_ul, vert_lr;
     // solutions for children Vertices
     int sol_ul, sol_lr;
     // iterate through input rects
@@ -115,15 +61,35 @@ vector <Vertex> init_vertices(int & n, int & m, int & p, vector <vector <int>> &
     }
     // second iteration. now all vertices are exist
     // and already have all base solutions inside
-    for (auto & x : vertices) {
+    for (auto & x : input) {
+        int x1 = x[0], y1 = x[1], x2 = x[2], y2 = x[3];
+        vert_ll.xy = x1 * 32 + y1;
+        vert_ul.xy = x1 * 32 + y2;
+        vert_lr.xy = x2 * 32 + y1;
         // all vertices are already exist
-        for (auto & v : vertices) {
-            if (x.xy == v.xy) {
-                //merge_solutions(n, m, p, x.solution, v.solution);
+        for (auto it = vertices.begin(); it != vertices.end(); ++it) {
+            auto vertex = * it;
+            // search for parent vertex
+            if (vert_ll.xy == vertex.xy) {
+                bool info_moved = false;
+                for (auto & child : vertices) {
+                    // search for child vertex
+                    if (child.xy == vert_ul.xy) {
+                        //merge_solutions(n, m, p, vertex.solution, child.solution);
+                        info_moved = true;
+                    }
+                    if (child.xy == vert_lr.xy) {
+                        //merge_solutions(n, m, p, vertex.solution, child.solution);
+                        info_moved = true;
+                    }
+                }
+                if (info_moved) {
+                    //vertices.erase(it);
+                    //--it;
+                }
             }
         }
     }
-    //v.solution.insert(vert_lr.solution.begin(), vert_lr.solution.end());
     return vertices;
 }
 
@@ -185,5 +151,4 @@ int main() {
         }
         cout << endl;
     }
-    //walkthrough(n, m, p, rects);
 }
