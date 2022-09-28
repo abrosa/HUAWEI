@@ -24,13 +24,13 @@ class xRectangle {
         Vertex ul;
         Vertex lr;
         Vertex ur;
-        vector <int> score;
+        vector <set <int>> score;
 };
 
 
-vector <vector <int>> merge_scores(int & n, int & m, int & p, vector <vector <int>> & s1, vector <vector <int>> & s2) {
+vector <set <int>> merge_scores(int & n, int & m, int & p, vector <set <int>> & s1, vector <set <int>> & s2) {
     // merge score1 to score2
-    vector <vector<int>> s0;
+    vector <set <int>> s0;
 
     for (int i = 0; i < p + 1; ++i) {
         //if (s1[i-1] >= s1[i]) continue;
