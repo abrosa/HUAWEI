@@ -2,30 +2,31 @@
 #include <vector>
 #include <set>
 
+#include "test0.hpp"
+
 using namespace std;
 
 class Vertex {
     public:
         int xy;
-        set <int> solution;
+        set <uint32_t> solution;
 };
 
-void merge_solutions(int & n, int & m, int & p, set <int> & solution1, set <int> & solution2) {
+void merge_solutions(int & n, int & m, int & p, set <uint32_t> & solution1, set <uint32_t> & solution2) {
     // merge solution1 to solution2 in-place
     int x1, y1, x2, y2, square1, square2, counter1, counter2;
-    uint32_t new_square, new_counter, new_score;
-    for (auto & s1 : solution1) {
-        for (auto & s2 : solution2) {
-            new_square = s1 % 1024 + s2 % 1024;
-            new_counter = s1 / 1024 + s2 / 1024;
-            if (new_square <= n * m && new_counter <= p) {
+    for (auto s1 : solution1) {
+        for (auto s2 : solution2) {
+            unpack_solution(s1, square1, counter1, x1, y1);
+            unpack_solution(s2, square2, counter2, x2, y2);
+            if (square1 + square2 <= n * m && counter1 + counter2 <= p) {
                 solution2.insert(s1 + s2);
             }
         }
     }
 }
 
-uint32_t pack_solution(int & square, int & counter, int & x, int & y) {
+uint32_t pack_solution(int square, int counter, int x, int y) {
     uint32_t solution;
     // square 1..900 -> 10bit
     // counter 1..100 -> 7bit
@@ -36,7 +37,7 @@ uint32_t pack_solution(int & square, int & counter, int & x, int & y) {
     return solution;
 }
 
-void unpack_solution(uint32_t & solution, int & square, int & counter, int & x, int & y) {
+void unpack_solution(const uint32_t & solution, int & square, int & counter, int & x, int & y) {
     // 10 bit -> square 1..900
     //  7 bit -> counter 1..100
     //  5 bit -> x 0..30
@@ -57,10 +58,12 @@ vector <Vertex> init_vertices(int & n, int & m, int & p, vector <vector <int>> &
     for (auto & x : input) {
         int x1 = x[0], y1 = x[1], x2 = x[2], y2 = x[3];
         vert_ul.xy = x1 * 32 + y2;
-        sol_ul = 1 * 1024 + (x2 - x1) * (y2 - y1);
-        vert_ul.solution.insert(sol_ul);
         vert_lr.xy = x2 * 32 + y1;
-        sol_lr = 1 * 1024 + (x2 - x1) * (y2 - y1);
+        sol_ul = pack_solution((x2 - x1) * (y2 - y1), 1, x1, y2);
+        sol_lr = pack_solution((x2 - x1) * (y2 - y1), 1, x2, y1);
+        vert_ul.solution.insert(sol_ul);
+        vert_ul.solution.insert(sol_lr);
+        vert_lr.solution.insert(sol_ul);
         vert_lr.solution.insert(sol_lr);
         bool ul_exists = false, lr_exists = false; 
         // check if vertices already exist
@@ -169,8 +172,12 @@ int main() {
     vertices = init_vertices(n, m, p, input, vertices);
     cout << vertices.size() << endl;
     for (auto v : vertices) {
-        for (auto x : v.solution) {
-            cout << x / 1024 << "'" << x % 1024 << ",";
+        cout << "vertex " << v.xy / 32 << "'" << v.xy % 32 << " ";
+        cout << "solutions ";
+        for (auto solution : v.solution) {
+            int square, counter, x, y;
+            unpack_solution(solution, square, counter, x, y);
+            cout << square << "'" << counter << "'" << x << "'" << y << " ";
         }
         cout << endl;
     }
