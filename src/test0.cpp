@@ -12,17 +12,11 @@ class Solution {
 
 class Vertex {
     public:
-        uint32_t xy;
+        int xy;
         vector <Solution> solution;
+        vector <Vertex> children;
 };
 
-class Rectangle {
-    public:
-        Vertex ll;
-        Vertex ul;
-        Vertex lr;
-        Vertex ur;
-};
 /*
 void merge_scores(int & n, int & m, int & p, xRectangle & xrect1, xRectangle & xrect2) {
     // merge score1 to score2
@@ -58,11 +52,11 @@ bool is_child(xRectangle & xrect1, xRectangle & xrect2) {
     return xrect2.ll == xrect1.ul || xrect2.ll == xrect1.lr;
 }
 */
-void walkthrough(int & n, int & m, int & p, vector <Rectangle> & xrects) {
+void walkthrough(int & n, int & m, int & p, vector <Vertex> & vertices) {
     int square;
     int counter;
     int min_counter = p + 1;
-    Rectangle result;
+//    Rectangle result;
     int index = 50;
 /*
     while (index --> 0) {
@@ -103,32 +97,45 @@ void walkthrough(int & n, int & m, int & p, vector <Rectangle> & xrects) {
     min_counter = (min_counter == p + 1) ? -1 : min_counter;
     cout << min_counter << endl;
 }
-/*
-void init_xrects(int & n, int & m, int & p, vector <vector <int>> & rects, vector <xRectangle> & xrects) {
-    uint32_t score;
-    for (auto & x : rects) {
-        int x1 = x[0];
-        int y1 = x[1];
-        int x2 = x[2];
-        int y2 = x[3];
-        xRectangle xrect;
-            xrect.ll = (x1 << 5) + y1;
-            xrect.ul = (x1 << 5) + y2;
-            xrect.lr = (x2 << 5) + y1;
-            xrect.ur = (x2 << 5) + y2;
-            // bitmap 5bit x1 5bit y1 10bit square 7bit counter 5bit free
-            score = (x1 << 27) + (y2 << 22) + (((x2 - x1) * (y2 - y1)) << 12) + (1 << 5);
-            xrect.score = {score};
-            score = (x2 << 27) + (y1 << 22) + (((x2 - x1) * (y2 - y1)) << 12) + (1 << 5);
-            xrect.score.insert(score);
-            if (xrect.ll == (0 * 32) + 0) xrect.is_ll = true;
-            if (xrect.ul == (0 * 32) + m) xrect.is_ul = true;
-            if (xrect.lr == (n * 32) + 0) xrect.is_lr = true;
-            if (xrect.ur == (n * 32) + m) xrect.is_ur = true;
-        xrects.push_back(xrect);
+
+// recursive?
+vector <Vertex> init_vertices(int & n, int & m, int & p, vector <vector <int>> & input, vector <Vertex> & vertices) {
+    // vertices for children Vertices
+    Vertex vert_ul, vert_lr;
+    // solutions for children Vertices
+    Solution sol_ul, sol_lr;
+    // iterate through input rects
+    for (auto & x : input) {
+        int x1 = x[0], y1 = x[1], x2 = x[2], y2 = x[3];
+        vert_ul.xy = x1 * 32 + y2;
+        sol_ul.counter = 1;
+        sol_ul.square = (x2 - x1) * (y2 - y1);
+        vert_lr.xy = x2 * 32 + y1;
+        sol_lr.counter = 1;
+        sol_lr.square = (x2 - x1) * (y2 - y1);
+        bool ul_exists = false, lr_exists = false; 
+        for (auto & v : vertices) {
+            if (v.xy == vert_ul.xy) {
+                v.solution.push_back(sol_ul);
+                ul_exists = true;
+                continue;
+            }
+            if (v.xy == vert_lr.xy) {
+                v.solution.push_back(sol_lr);
+                lr_exists = true;
+                continue;
+            }
+        }
+        if (! ul_exists) {
+            vertices.push_back(vert_ul);
+        }
+        if (! lr_exists) {
+            vertices.push_back(vert_lr);
+        }
     }
+    return vertices;
 }
-*/
+
 int main() {
     int n = 5, m = 5, p = 45;
     vector <vector <int>> input;
@@ -178,7 +185,8 @@ int main() {
               {3, 3, 5, 4},
               {3, 4, 5, 5} };
 
-    vector <Rectangle> rects;
-    //init_rects(n, m, p, input, rects);
-    walkthrough(n, m, p, rects);
+    vector <Vertex> vertices;
+    vertices = init_vertices(n, m, p, input, vertices);
+    cout << vertices.size() << endl;
+    //walkthrough(n, m, p, rects);
 }
