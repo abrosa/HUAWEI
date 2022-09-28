@@ -4,49 +4,29 @@
 
 using namespace std;
 
-class Solution {
-    public:
-        int counter;
-        int square;
-};
-
 class Vertex {
     public:
         int xy;
-        vector <Solution> solution;
+        set <int> solution;
         vector <Vertex> children;
 };
 
-/*
-void merge_scores(int & n, int & m, int & p, xRectangle & xrect1, xRectangle & xrect2) {
-    // merge score1 to score2
+void merge_solutions(int & n, int & m, int & p, set <int> & solution1, set <int> & solution2) {
+    // merge solution1 to solution2 in-place
     int x1, y1, x2, y2, square1, square2, counter1, counter2;
     uint32_t new_square, new_counter, new_score;
-    for (auto it1 = xrect1.score.begin(); it1 != xrect1.score.end(); ++it1) {
-        auto s1 = * it1;
-        for (auto & s2 : xrect2.score) {
-            // unpack scores
-            x1 = s1 >> 27;
-            y1 = s1 >> 22 & 31;
-            square1 = s1 >> 12 & 1023;
-            counter1 = s1 >> 5 & 127;
-            x2 = s2 >> 27;
-            y2 = s2 >> 22 & 31;
-            square2 = s2 >> 12 & 1023;
-            counter2 = s2 >> 5 & 127;
-            if (x1 == (xrect2.ll >> 5) && y1 == (xrect2.ll & 31)) {
-                new_square = square1 + square2;
-                new_counter = counter1 + counter2;
-                new_score = (x2 << 27) + (y2 << 22) + (new_square << 12) + (new_counter << 5);
-                if (new_square <= n * m && new_counter <= p) {
-                    xrect2.score.insert(new_score);
-//                    xrect1.score.erase(it1);
-  //                  --it1;
-                }
+    for (auto & s1 : solution1) {
+        for (auto & s2 : solution2) {
+            new_square = s1 % 1024 + s2 % 1024;
+            new_counter = s1 / 1024 + s2 / 1024;
+            if (new_square <= n * m && new_counter <= p) {
+                solution2.insert(s1 + s2);
             }
         }
     }
 }
+
+/*
 
 bool is_child(xRectangle & xrect1, xRectangle & xrect2) {
     return xrect2.ll == xrect1.ul || xrect2.ll == xrect1.lr;
@@ -103,29 +83,29 @@ vector <Vertex> init_vertices(int & n, int & m, int & p, vector <vector <int>> &
     // vertices for children Vertices
     Vertex vert_ul, vert_lr;
     // solutions for children Vertices
-    Solution sol_ul, sol_lr;
+    int sol_ul, sol_lr;
     // iterate through input rects
     for (auto & x : input) {
         int x1 = x[0], y1 = x[1], x2 = x[2], y2 = x[3];
         vert_ul.xy = x1 * 32 + y2;
-        sol_ul.counter = 1;
-        sol_ul.square = (x2 - x1) * (y2 - y1);
+        sol_ul = 1 * 1024 + (x2 - x1) * (y2 - y1);
+        vert_ul.solution.insert(sol_ul);
         vert_lr.xy = x2 * 32 + y1;
-        sol_lr.counter = 1;
-        sol_lr.square = (x2 - x1) * (y2 - y1);
+        sol_lr = 1 * 1024 + (x2 - x1) * (y2 - y1);
+        vert_lr.solution.insert(sol_lr);
         bool ul_exists = false, lr_exists = false; 
+        // check if vertices already exist
         for (auto & v : vertices) {
             if (v.xy == vert_ul.xy) {
-                v.solution.push_back(sol_ul);
                 ul_exists = true;
-                continue;
+                v.solution.insert(sol_ul);
             }
             if (v.xy == vert_lr.xy) {
-                v.solution.push_back(sol_lr);
                 lr_exists = true;
-                continue;
+                v.solution.insert(sol_lr);
             }
         }
+        // push new vertices
         if (! ul_exists) {
             vertices.push_back(vert_ul);
         }
@@ -133,6 +113,17 @@ vector <Vertex> init_vertices(int & n, int & m, int & p, vector <vector <int>> &
             vertices.push_back(vert_lr);
         }
     }
+    // second iteration. now all vertices are exist
+    // and already have all base solutions inside
+    for (auto & x : vertices) {
+        // all vertices are already exist
+        for (auto & v : vertices) {
+            if (x.xy == v.xy) {
+                //merge_solutions(n, m, p, x.solution, v.solution);
+            }
+        }
+    }
+    //v.solution.insert(vert_lr.solution.begin(), vert_lr.solution.end());
     return vertices;
 }
 
@@ -188,5 +179,11 @@ int main() {
     vector <Vertex> vertices;
     vertices = init_vertices(n, m, p, input, vertices);
     cout << vertices.size() << endl;
+    for (auto v : vertices) {
+        for (auto x : v.solution) {
+            cout << x / 1024 << "'" << x % 1024 << ",";
+        }
+        cout << endl;
+    }
     //walkthrough(n, m, p, rects);
 }
