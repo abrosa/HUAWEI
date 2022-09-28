@@ -26,7 +26,7 @@ class Solutions {
         // rect square and counter
         uint16_t square;
         uint16_t counter;
-        set <uint32_t> score;
+        vector <int> score;
         // flag for processed rects
         bool processed = false;
         bool is_ll = false;
@@ -34,17 +34,16 @@ class Solutions {
         bool is_ul = false;
         bool is_ur = false;
         // info about neighbours
-        vector <Solutions> n_ll;
-        vector <Solutions> n_lr;
-        vector <Solutions> n_ul;
-        vector <Solutions> n_ur;
+        vector <Solutions> neighbours;
 };
 
 void merge_solutions(Solutions & curr, Solutions & next) {
-    set <uint32_t> tmp;
-    // merge curr and next
-    tmp = curr.score;
-    tmp.insert(next.score.begin(), next.score.end());
+    // merge curr and next score
+    vector <int> score1, score2;
+    score1 = curr.score;
+    score2 = next.score;
+    while (score1.size > score2.size) score2.push_back(score2.size() + 1);
+    while (score2.size > score1.size) score1.push_back(score1.size() + 1);
     // multiply solution matrices
     for (auto & score1 : curr.score) {
         uint16_t square1 = score1 & 65535;
@@ -58,8 +57,8 @@ void merge_solutions(Solutions & curr, Solutions & next) {
             }
         }
     }
-    curr.score = tmp;
-    next.score = tmp;
+    curr.score = score;
+    next.score = score;
 }
 
 vector <Solutions> collect_info(int n, int m, vector <uint32_t> & rects) {
@@ -96,14 +95,19 @@ void update_info(vector <Solutions> & vsols) {
     // update info about neighbours
     for (auto & curr : vsols) {
         for (auto & next : vsols) {
-            if (curr.c_ul == next.c_ur) curr.n_ll.push_back(next);
-            if (curr.c_lr == next.c_ur) curr.n_ll.push_back(next);
-            if (curr.c_ur == next.c_ul) curr.n_lr.push_back(next);
-            if (curr.c_ll == next.c_ul) curr.n_lr.push_back(next);
-            if (curr.c_ur == next.c_lr) curr.n_ul.push_back(next);
-            if (curr.c_ll == next.c_lr) curr.n_ul.push_back(next);
-            if (curr.c_ul == next.c_ll) curr.n_ur.push_back(next);
-            if (curr.c_lr == next.c_ll) curr.n_ur.push_back(next);
+            if ((curr.c_ul == next.c_ur) ||
+                (curr.c_lr == next.c_ur) ||
+                (curr.c_ur == next.c_ur) ||
+                (curr.c_ur == next.c_ul) ||
+                (curr.c_ll == next.c_ul) ||
+                (curr.c_ul == next.c_ul) ||
+                (curr.c_ur == next.c_lr) ||
+                (curr.c_ll == next.c_lr) ||
+                (curr.c_lr == next.c_lr) ||
+                (curr.c_ul == next.c_ll) ||
+                (curr.c_lr == next.c_ll) ||
+                (curr.c_ll == next.c_ll))
+                curr.neighbours.push_back(next);
         }
     }
 }
@@ -137,36 +141,27 @@ int walkthrough(int & n, int & m, vector <uint32_t> & rects) {
     // collect info from the rects
     vector <Solutions> vsols = collect_info(n, m, rects);
     update_info(vsols);
-    //visualize(vsols);
     // main loop
     int counter = 10;
     int processed;
     do {
         processed = 0;
         for (auto curr = vsols.begin(); curr != vsols.end(); ++curr) {
-            for (auto next = (*curr).n_ll.begin(); next != (*curr).n_ll.end(); ++next) {
+            for (auto next = (*curr).neighbours.begin(); next != (*curr).neighbours.end(); ++next) {
                 merge_solutions(*curr, *next); ++processed;
             }
-            for (auto next = (*curr).n_lr.begin(); next != (*curr).n_lr.end(); ++next) {
-                merge_solutions(*curr, *next); ++processed;
-            }
-            for (auto next = (*curr).n_ul.begin(); next != (*curr).n_ul.end(); ++next) {
-                merge_solutions(*curr, *next); ++processed;
-            }
-            for (auto next = (*curr).n_ur.begin(); next != (*curr).n_ur.end(); ++next) {
-                merge_solutions(*curr, *next); ++processed;
-            }
+
             //visualize(vsols);
-            //cout << vsols.size() << endl;
-            //for (auto & vsol : vsols) {
-            //    for (auto & score : vsols[0].score) {
-            //        auto square = score & 65535;
-            //        auto cou    = score >> 16;
-            //        cout << square << "'" << cou << " ";
-            //    }
-            //    cout << ";";
-            //}
-            //cout << endl;
+            cout << vsols.size() << endl;
+            for (auto & vsol : vsols) {
+                for (auto & score : vsols[0].score) {
+                    auto square = score & 65535;
+                    auto cou    = score >> 16;
+                    cout << square << "'" << cou << " ";
+                }
+                cout << ";";
+            }
+            cout << endl;
 
             if (vsols.size() > 1) {
                 vsols.erase(curr);
