@@ -25,6 +25,29 @@ void merge_solutions(int & n, int & m, int & p, set <int> & solution1, set <int>
     }
 }
 
+uint32_t pack_solution(int & square, int & counter, int & x, int & y) {
+    uint32_t solution;
+    // square 1..900 -> 10bit
+    // counter 1..100 -> 7bit
+    // x 0..30 -> 5bit
+    // y 0..30 -> 5bit
+    // 5bit is still free
+    solution = ((square & 1023) << 22) | ((counter & 127) << 15) | ((x & 31) << 10) | ((y & 31) << 5);
+    return solution;
+}
+
+void unpack_solution(uint32_t & solution, int & square, int & counter, int & x, int & y) {
+    // 10 bit -> square 1..900
+    //  7 bit -> counter 1..100
+    //  5 bit -> x 0..30
+    //  5 bit -> y 0..30
+    //  5 bit -> not used
+    square = solution >> 22 & 1023;
+    counter = solution >> 15 & 127;
+    x = solution >> 10 & 31;
+    y = solution >> 5 & 31;
+}
+
 vector <Vertex> init_vertices(int & n, int & m, int & p, vector <vector <int>> & input, vector <Vertex> & vertices) {
     // vertices for children Vertices
     Vertex vert_ll, vert_ul, vert_lr;
