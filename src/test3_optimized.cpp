@@ -18,121 +18,69 @@ bool operator != (const Vertex & v) {
 }
 };
 
-class Score {
-    public:
-        Vertex v;
-        vector <int> score;
-};
-
 class xRectangle {
     public:
-        int x1;
-        int y1;
-        int x2;
-        int y2;
         Vertex ll;
         Vertex ul;
         Vertex lr;
         Vertex ur;
-        int square;
-        int counter;
-        Score score;
-        bool processed;
-
-bool operator == (const xRectangle & r) {
-    return x1 == r.x1 && y1 == r.y1 && x2 == r.x2 && y2 == r.y2;
-}
-
-bool operator != (const xRectangle & r) {
-    return x1 != r.x1 || y1 != r.y1 || x2 != r.x2 || y2 != r.y2;
-}
+        vector <int> score;
 };
 
 
-xRectangle merge_scores(xRectangle & full_map, xRectangle & xrect1, xRectangle & xrect2) {
-    // merge xrect1 to xrect2 and return as xrect0
-    int n = full_map.x2;
-    int m = full_map.y2;
-    int p = full_map.counter;
-    int square = full_map.square;
-    // if xrects are the same, just return xrect2
-    if (xrect1 == xrect2) return xrect2;
-    // start merging
-    vector <int> s0(p + 1, 0);
-    vector <int> s1 = xrect1.score.score;
-    vector <int> s2 = xrect2.score.score;
-    // use shorter variables
-    for (int k = 0; k < p + 1; ++k) {
-        for (int i = 0; i < p + 1; ++i) {
-            s0[i] = max(s0[i], s1[i]);
-            for (int j = 0; j < p + 1; ++j) {
-                s0[j] = max(s0[j], s2[j]);
-                if (i + j == k) {
-                    if (s1[i] + s2[j] <= square) {
-                        s0[k] = max(s0[k], s1[i] + s2[j]);
-                    }
-                }
+vector <vector <int>> merge_scores(int & n, int & m, int & p, vector <vector <int>> & s1, vector <vector <int>> & s2) {
+    // merge score1 to score2
+    vector <vector<int>> s0;
+
+    for (int i = 0; i < p + 1; ++i) {
+        //if (s1[i-1] >= s1[i]) continue;
+        //s0[i] = max(s0[i], s1[i]);
+        for (int j = 0; j < p + 1; ++j) {
+            //if (s2[j-1] >= s2[j]) continue;
+            //s0[j] = max(s0[j], s2[j]);
+            if (s1[i] + s2[j] <= n * m && i + j < p + 1) {
+                s0[i + j] = max(s0[i + j], s1[i] + s2[j]);
             }
         }
     }
-    xRectangle xrect0 = xrect2;
-    xrect0.square = xrect1.square + xrect2.square;
-    xrect0.score.score = s0;
-    return xrect0;
-}
-
-bool is_ll(xRectangle & xrect) {
-    return xrect.x1 == 0 && xrect.y1 == 0;
-}
-
-bool is_ur(xRectangle & full_map, xRectangle & xrect) {
-    return xrect.ur == full_map.ur && xrect.ur == full_map.ur;
-}
-
-int walkthrough(vector <xRectangle> & xrects) {
-    xRectangle full_map = xrects.back();
-    xrects.pop_back();
-    int n = full_map.x2;
-    int m = full_map.y2;
-    full_map.counter = xrects.size();
-    // collect info about vertices
-    vector <Vertex> vertices;
-    for (auto & xrect : xrects) {
-        vertices.push_back(xrect.ll);
-        vertices.push_back(xrect.ul);
-        vertices.push_back(xrect.lr);
-        vertices.push_back(xrect.ur);
+    for (int i = p; i > 0; --i) {
+        if (s0[i-1] >= s0[i]) {
+            s0[i] = 0;
+        }
     }
-    // check input data
-    bool ll = false, ul = false, lr = false, ur = false;
-    for (auto & vertex : vertices) {
-        if (vertex == full_map.ll) ll = true;
-        if (vertex == full_map.ul) ul = true;
-        if (vertex == full_map.lr) lr = true;
-        if (vertex == full_map.ur) ur = true;
-    }
-    // all corners must be presented
-    if (!(ll && ul && lr && ur)) return -1;
+    return s0;
+}
+
+bool is_child(xRectangle & xrect1, xRectangle & xrect2) {
+    return xrect2.ll == xrect1.ul || xrect2.ll == xrect1.lr;
+}
+
+int walkthrough(int & n, int & m, int & p, vector <xRectangle> & xrects) {
+
+    vector <int> result = {0};
+
     for (auto & xrect : xrects) {
         for (auto & child : xrects) {
-            if (xrect.ll == child.ul || xrect.ll == child.lr ||
-                xrect.ul == child.ll || xrect.ul == child.ur ||
-                xrect.lr == child.ll || xrect.lr == child.ur ||
-                xrect.ur == child.ul || xrect.ur == child.lr) {
-                child = merge_scores(full_map, xrect, child);
+            if (is_child(xrect, child)) {
+                child.score = merge_scores(n, m, p, xrect.score, child.score);
             }
         }
-        {auto y = xrect.score.score; cout << "xrect.score.score <"; for (auto & x : y) cout << x << "'"; cout << ">" << endl;}
+        result = merge_scores(n, m, p, xrect.score, result);
+    }
+    {auto y = result; cout << "result <"; for (auto & x : y) cout << x << "'"; cout << ">" << endl;}
+
+    int score = 0;
+    while (score < result.size()) {
+        ++score;
+        if (result[score] == n * m) {
+            return score;
+        }
     }
     return -1;
 }
 
 void init_xrect(int x1, int y1, int x2, int y2, vector <xRectangle> & xrects, int p) {
     xRectangle xrect;
-    xrect.x1 = x1;
-    xrect.y1 = y1;
-    xrect.x2 = x2;
-    xrect.y2 = y2;
     xrect.ll.x = x1;
     xrect.ll.y = y1;
     xrect.ul.x = x1;
@@ -141,14 +89,9 @@ void init_xrect(int x1, int y1, int x2, int y2, vector <xRectangle> & xrects, in
     xrect.lr.y = y1;
     xrect.ur.x = x2;
     xrect.ur.y = y2;
-    xrect.square = (x2 - x1) * (y2 - y1);
-    xrect.counter = p;
-    xrect.score.v.x = x1;
-    xrect.score.v.y = y1;
     vector <int> score(p + 1, 0);
-    xrect.score.score = score;
-    xrect.score.score[1] = xrect.square;
-    xrect.processed = false;
+    xrect.score = score;
+    xrect.score[1] = (x2-x1)*(y2-y1);
     xrects.push_back(xrect);
 }
 
@@ -158,21 +101,73 @@ int main() {
     // vector for data
     vector <xRectangle> xrects;
 /*
-    for (int i = 0; i < n; i += 1){
-        for (int j = 0; j < m; j += 1){
-            pack_rect(i, j, i + 1, j + 1, rects);
+    for (int i = 0; i < n; i += 3){
+        for (int j = 0; j < m; j += 3){
+            init_xrect(i, j, i + 3, j + 3, xrects, p);
         }
     }
 */
+/*
     init_xrect(0, 0, 1, 1, xrects, p);
     init_xrect(0, 1, 1, 5, xrects, p);
     init_xrect(1, 0, 3, 1, xrects, p);
     init_xrect(1, 1, 3, 5, xrects, p);
+*/
+/*
+    n = 3; m = 3; p = 5;
+    init_xrect(0, 0, 2, 1, xrects, p);
+    init_xrect(0, 1, 1, 3, xrects, p);
+    init_xrect(1, 1, 2, 2, xrects, p);
+    init_xrect(1, 2, 3, 3, xrects, p);
+    init_xrect(2, 0, 3, 2, xrects, p);
+*/
 
-    // last element is the full map
-    init_xrect(0, 0, n, m, xrects, p);
+    n = 5; m = 5; p = 45;
+    init_xrect(0, 0, 1, 1, xrects, p);
+    init_xrect(0, 1, 1, 2, xrects, p);
+    init_xrect(0, 2, 1, 3, xrects, p);
+    init_xrect(0, 3, 1, 4, xrects, p);
+    init_xrect(0, 4, 1, 5, xrects, p);
+    init_xrect(1, 0, 2, 1, xrects, p);
+    init_xrect(1, 1, 2, 2, xrects, p);
+    init_xrect(1, 2, 2, 3, xrects, p);
+    init_xrect(1, 3, 2, 4, xrects, p);
+    init_xrect(1, 4, 2, 5, xrects, p);
+    init_xrect(2, 0, 3, 1, xrects, p);
+    init_xrect(2, 1, 3, 2, xrects, p);
+    init_xrect(2, 2, 3, 3, xrects, p);
+    init_xrect(2, 3, 3, 4, xrects, p);
+    init_xrect(2, 4, 3, 5, xrects, p);
+    init_xrect(3, 0, 4, 1, xrects, p);
+    init_xrect(3, 1, 4, 2, xrects, p);
+    init_xrect(3, 2, 4, 3, xrects, p);
+    init_xrect(3, 3, 4, 4, xrects, p);
+    init_xrect(3, 4, 4, 5, xrects, p);
+    init_xrect(4, 0, 5, 1, xrects, p);
+    init_xrect(4, 1, 5, 2, xrects, p);
+    init_xrect(4, 2, 5, 3, xrects, p);
+    init_xrect(4, 3, 5, 4, xrects, p);
+    init_xrect(4, 4, 5, 5, xrects, p);
+    init_xrect(0, 0, 2, 1, xrects, p);
+    init_xrect(0, 1, 2, 2, xrects, p);
+    init_xrect(0, 2, 2, 3, xrects, p);
+    init_xrect(0, 3, 2, 4, xrects, p);
+    init_xrect(0, 4, 2, 5, xrects, p);
+    init_xrect(1, 0, 3, 1, xrects, p);
+    init_xrect(1, 1, 3, 2, xrects, p);
+    init_xrect(1, 2, 3, 3, xrects, p);
+    init_xrect(1, 3, 3, 4, xrects, p);
+    init_xrect(1, 4, 3, 5, xrects, p);
+    init_xrect(2, 0, 4, 1, xrects, p);
+    init_xrect(2, 1, 4, 2, xrects, p);
+    init_xrect(2, 2, 4, 3, xrects, p);
+    init_xrect(2, 3, 4, 4, xrects, p);
+    init_xrect(2, 4, 4, 5, xrects, p);
+    init_xrect(3, 0, 5, 1, xrects, p);
+    init_xrect(3, 1, 5, 2, xrects, p);
+    init_xrect(3, 2, 5, 3, xrects, p);
+    init_xrect(3, 3, 5, 4, xrects, p);
+    init_xrect(3, 4, 5, 5, xrects, p);
 
-
-    // try to resolve
-    cout << walkthrough(xrects) << endl;
+    cout << walkthrough(n, m, p, xrects) << endl;
 }
