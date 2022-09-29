@@ -5,6 +5,10 @@
 #include "test0.hpp"
 
 using namespace std;
+// don't want to drag it everywhere
+int n;
+int m;
+int p;
 
 class Vertex {
     public:
@@ -12,7 +16,7 @@ class Vertex {
         set <uint32_t> solution;
 };
 
-void merge_solutions(int & n, int & m, int & p, set <uint32_t> & solution1, set <uint32_t> & solution2) {
+void merge_solutions(set <uint32_t> & solution1, set <uint32_t> & solution2) {
     // merge solution1 to solution2 in-place
     int x1, y1, x2, y2, square1, square2, counter1, counter2;
     uint32_t new_solution;
@@ -53,55 +57,95 @@ void unpack_solution(const uint32_t & solution, int & square, int & counter, int
     y = solution >> 5 & 31;
 }
 
-vector <Vertex> init_vertices(int & n, int & m, int & p, vector <vector <int>> & input, vector <Vertex> & vertices) {
-    // vertices for children Vertices
-    Vertex vert_ll, vert_ul, vert_lr, vert_ur;
-    // solutions for children Vertices
-    int sol_ll, sol_ul, sol_lr, sol_ur;
+void add_vertex(int & x, int & y, uint32_t & solution, vector <Vertex> & vertices) {
+    // new vertex
+    Vertex vertex;
+    vertex.xy = x * 32 + y;
+    vertex.solution = {solution};
+    bool already_exists = false;
+    for (auto & vert : vertices) {
+        if (vert.xy == vertex.xy) {
+            already_exists = true;
+            merge_solutions(vertex.solution, vert.solution);
+            break;
+        }
+    }
+    if (! already_exists) {
+        vertices.push_back(vertex);
+    }
+}
+
+void add_vertices(vector <vector <int>> & input, vector <Vertex> & vertices) {
+    // input coordinates
     int x1, y1, x2, y2;
-    int square;
     // iterate through input rects
-    for (auto & rect : input) {
+    for (auto it = input.begin(); it != input.end(); ++it) {
+        auto rect = * it;
         x1 = rect[0]; y1 = rect[1]; x2 = rect[2]; y2 = rect[3];
-        vert_ll.xy = x1 * 32 + y1;
-        vert_ul.xy = x1 * 32 + y2;
-        vert_lr.xy = x2 * 32 + y1;
-        vert_ur.xy = x2 * 32 + y2;
-        square = (x2 - x1) * (y2 - y1);
-        sol_ll = pack_solution(square, 1, x1, y1);
-        sol_ul = pack_solution(square, 1, x1, y2);
-        sol_lr = pack_solution(square, 1, x2, y1);
-        sol_ur = pack_solution(square, 1, x2, y2);
-        vert_ll.solution.insert(sol_ll);
-        vert_ul.solution.insert(sol_ul);
-        vert_lr.solution.insert(sol_lr);
-        vert_ur.solution.insert(sol_ur);
-        bool ll_exists = false, ul_exists = false; 
-        bool lr_exists = false, ur_exists = false; 
-        // check if vertices already exist
-        for (auto & v : vertices) {
-            if (v.xy == vert_ll.xy) {
-                ll_exists = true;
-                v.solution.insert(sol_ll);
-            }
-            if (v.xy == vert_ul.xy) {
-                ul_exists = true;
-                v.solution.insert(sol_ul);
-            }
-            if (v.xy == vert_lr.xy) {
-                lr_exists = true;
-                v.solution.insert(sol_lr);
-            }
-            if (v.xy == vert_ur.xy) {
-                ur_exists = true;
-                v.solution.insert(sol_ur);
+        int square = (x2 - x1) * (y2 - y1);
+        // at first will add all corners
+        if (x1 == 0 && y1 == 0) {
+            add_vertex()
+        }
+        if (x1 == 0 && y2 == m) {
+        }
+        if (x2 == n && y1 == 0) {
+        }
+        if (x2 == n && y2 == m) {
+        }
+
+        // iterate through already defined vertices
+        bool not_exists = false;
+        for (auto & vertex : vertices) {
+            if (vertex.xy != x1 * 32 + y1 && vertex.xy != x1 * 32 + y2 &&
+                vertex.xy != x2 * 32 + y1 && vertex.xy != x2 * 32 + y2) {
+
             }
         }
-        // push new vertices
-        if (! ll_exists) vertices.push_back(vert_ll);
-        if (! ul_exists) vertices.push_back(vert_ul);
-        if (! lr_exists) vertices.push_back(vert_lr);
-        if (! ur_exists) vertices.push_back(vert_ur);
+            // get coordinates
+            vert_ll.xy = x1 * 32 + y1;
+            vert_ul.xy = x1 * 32 + y2;
+            vert_lr.xy = x2 * 32 + y1;
+            vert_ur.xy = x2 * 32 + y2;
+            square = (x2 - x1) * (y2 - y1);
+            sol_ll = pack_solution(square, 1, x1, y1);
+            sol_ul = pack_solution(square, 1, x1, y2);
+            sol_lr = pack_solution(square, 1, x2, y1);
+            sol_ur = pack_solution(square, 1, x2, y2);
+            vert_ll.solution.insert(sol_ll);
+            vert_ul.solution.insert(sol_ul);
+            vert_lr.solution.insert(sol_lr);
+            vert_ur.solution.insert(sol_ur);
+            bool ll_exists = false, ul_exists = false; 
+            bool lr_exists = false, ur_exists = false; 
+            // check if vertices already exist
+            for (auto & v : vertices) {
+                if (v.xy == vert_ll.xy) {
+                    ll_exists = true;
+                    v.solution.insert(sol_ll);
+                }
+                if (v.xy == vert_ul.xy) {
+                    ul_exists = true;
+                    v.solution.insert(sol_ul);
+                }
+                if (v.xy == vert_lr.xy) {
+                    lr_exists = true;
+                    v.solution.insert(sol_lr);
+                }
+                if (v.xy == vert_ur.xy) {
+                    ur_exists = true;
+                    v.solution.insert(sol_ur);
+                }
+            }
+            // push new vertices
+            if (! ll_exists) vertices.push_back(vert_ll);
+            if (! ul_exists) vertices.push_back(vert_ul);
+            if (! lr_exists) vertices.push_back(vert_lr);
+            if (! ur_exists) vertices.push_back(vert_ur);
+
+        }
+    }
+    {
     }
     // second iteration. now all vertices are exist
     // and already have all base solutions inside
@@ -135,7 +179,7 @@ vector <Vertex> init_vertices(int & n, int & m, int & p, vector <vector <int>> &
                     for (auto & child : vertices) {
                         // search for child vertex
                         if (child.xy == vert_ul.xy || child.xy == vert_lr.xy) {
-                            merge_solutions(n, m, p, vertex.solution, child.solution);
+                            merge_solutions(vertex.solution, child.solution);
                             info_moved = true;
                         }
                     }
@@ -145,7 +189,7 @@ vector <Vertex> init_vertices(int & n, int & m, int & p, vector <vector <int>> &
                     for (auto & child : vertices) {
                         // search for child vertex
                         if (child.xy == vert_ll.xy || child.xy == vert_ur.xy) {
-                            merge_solutions(n, m, p, vertex.solution, child.solution);
+                            merge_solutions(vertex.solution, child.solution);
                             info_moved = true;
                         }
                     }
@@ -184,7 +228,9 @@ int main() {
               {0, 1, 1, 3},
               {2, 1, 3, 3} };
 */
-    int n = 5, m = 5, p = 45;
+    n = 5;
+    m = 5;
+    p = 45;
     vector <vector <int>> input;
     input = { {0, 0, 1, 1},
               {0, 1, 1, 2},
@@ -233,7 +279,7 @@ int main() {
               {3, 4, 5, 5} };
 
     vector <Vertex> vertices;
-    vertices = init_vertices(n, m, p, input, vertices);
+    vertices = init_vertices(input, vertices);
     //cout << vertices.size() << endl;
     int min_count = p + 1;
     for (auto v : vertices) {
