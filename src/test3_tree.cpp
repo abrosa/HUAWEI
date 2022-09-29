@@ -62,11 +62,13 @@ void fill_neighbours(vector <Rectangle> & rects) {
 
 vector <Rectangle> init_rects(vector <vector <int>> & input) {
     vector <Rectangle> rects;
-    // add corners
+    // add corners (think out it)
     rects.push_back(fill_rect(0, 0, 0, 0));
     rects.push_back(fill_rect(n, 0, n, 0));
     rects.push_back(fill_rect(0, m, 0, m));
     rects.push_back(fill_rect(n, m, n, m));
+    // four fake rects added
+    p += 4;
     // add all other rectangles
     for (auto c : input) {
         rects.push_back(fill_rect(c[0], c[1], c[2], c[3]));
@@ -78,62 +80,71 @@ void print_rect(const string & prefix, Rectangle & rect) {
     cout << prefix << rect.x1 << "'" << rect.y1 << "'" << rect.x2 << "'" << rect.y2 << "]" << endl;
 }
 
-int main() {
-    n = 5;
-    m = 5;
-    p = 45;
-    vector <vector <int>> input;
-    input = { {0, 0, 1, 1},
-              {0, 1, 1, 2},
-              {0, 2, 1, 3},
-              {0, 3, 1, 4},
-              {0, 4, 1, 5},
-              {1, 0, 2, 1},
-              {1, 1, 2, 2},
-              {1, 2, 2, 3},
-              {1, 3, 2, 4},
-              {1, 4, 2, 5},
-              {2, 0, 3, 1},
-              {2, 1, 3, 2},
-              {2, 2, 3, 3},
-              {2, 3, 3, 4},
-              {2, 4, 3, 5},
-              {3, 0, 4, 1},
-              {3, 1, 4, 2},
-              {3, 2, 4, 3},
-              {3, 3, 4, 4},
-              {3, 4, 4, 5},
-              {4, 0, 5, 1},
-              {4, 1, 5, 2},
-              {4, 2, 5, 3},
-              {4, 3, 5, 4},
-              {4, 4, 5, 5},
-              {0, 0, 2, 1},
-              {0, 1, 2, 2},
-              {0, 2, 2, 3},
-              {0, 3, 2, 4},
-              {0, 4, 2, 5},
-              {1, 0, 3, 1},
-              {1, 1, 3, 2},
-              {1, 2, 3, 3},
-              {1, 3, 3, 4},
-              {1, 4, 3, 5},
-              {2, 0, 4, 1},
-              {2, 1, 4, 2},
-              {2, 2, 4, 3},
-              {2, 3, 4, 4},
-              {2, 4, 4, 5},
-              {3, 0, 5, 1},
-              {3, 1, 5, 2},
-              {3, 2, 5, 3},
-              {3, 3, 5, 4},
-              {3, 4, 5, 5} };
+void check_4d_tree(vector <Rectangle> & rects) {
+    bool bad_rect;
+    do {
+        bad_rect = false;
+        for (auto it = rects.begin(); it != rects.end(); ++it) {
+            auto rect = * it;
+            if (rect.ll_neighbours.size() == 0 ||
+                rect.ul_neighbours.size() == 0 ||
+                rect.lr_neighbours.size() == 0 ||
+                rect.ur_neighbours.size() == 0) {
+                //cout << "bad rect found" << endl;
+                bad_rect = true;
+            }
+            // remove rect from neighbours and itself
+            if (bad_rect) {
+                for (auto ll = rect.ll_neighbours.begin(); ll != rect.ll_neighbours.end(); ++ll) {
+                    rect.ll_neighbours.erase(ll);
+                    --ll;
+                }
+                for (auto ul = rect.ul_neighbours.begin(); ul != rect.ul_neighbours.end(); ++ul) {
+                    rect.ul_neighbours.erase(ul);
+                    --ul;
+                }
+                for (auto lr = rect.lr_neighbours.begin(); lr != rect.lr_neighbours.end(); ++lr) {
+                    rect.lr_neighbours.erase(lr);
+                    --lr;
+                }
+                for (auto ur = rect.ur_neighbours.begin(); ur != rect.ur_neighbours.end(); ++ur) {
+                    rect.ur_neighbours.erase(ur);
+                    --ur;
+                }
+                rects.erase(it);
+                --it;
+            }
+        }
+    } while (bad_rect);
+}
 
+int main() {
+    n = 4;
+    m = 4;
+    //p = 5;
+    vector <vector <int>> input;
+    input = { {0, 0, 2, 2},
+              {0, 2, 2, 4},
+              {2, 0, 4, 2},
+              {2, 2, 4, 4},
+              {0, 0, 4, 3} };
+    //cout << input.size() << endl;
+    p = input.size();
+
+    // create rects vector
     vector <Rectangle> rects;
     rects = init_rects(input);
+    // fill info about neighbours
     fill_neighbours(rects);
+    // check if some rects have hang up vertices
+    // it means that these rects can be fully removed
+    check_4d_tree(rects);
+    // if all rects were deleted during the checking, return -1
+    if (rects.size() == 4) {
+        cout << -1 << endl;
+        return -1;
+    }
 
-    cout << rects.size() << endl;
     //int min_count = p + 1;
     for (auto rect : rects) {
         print_rect("[", rect);
